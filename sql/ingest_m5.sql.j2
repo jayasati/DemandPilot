@@ -1,0 +1,98 @@
+-- M5 ingestion (rendered by demandpilot.sqlrender; parameter: raw_dir).
+-- Re-runnable: replaces previously ingested rows.
+
+-- 1. Stage raw CSVs -----------------------------------------------------------
+
+CREATE OR REPLACE TABLE stg_calendar AS
+SELECT * FROM read_csv('{{ raw_dir }}/calendar.csv', header = true);
+
+CREATE OR REPLACE TABLE stg_prices AS
+SELECT * FROM read_csv('{{ raw_dir }}/sell_prices.csv', header = true);
+
+CREATE OR REPLACE TABLE stg_sales_wide AS
+SELECT * FROM read_csv('{{ raw_dir }}/sales_train_evaluation.csv', header = true);
+
+-- 2. Reset target tables (children before parents; order is defensive only) ---
+
+DELETE FROM sales;
+DELETE FROM prices;
+DELETE FROM calendar;
+DELETE FROM skus;
+DELETE FROM stores;
+
+-- 3. Dimensions ---------------------------------------------------------------
+
+INSERT INTO stores
+SELECT DISTINCT store_id, state_id
+FROM stg_sales_wide;
+
+INSERT INTO skus
+SELECT DISTINCT item_id AS sku_id, dept_id, cat_id
+FROM stg_sales_wide;
+
+INSERT INTO calendar
+SELECT
+    CAST(date AS DATE)                              AS date,
+    d,
+    CAST(wm_yr_wk AS INTEGER)                       AS wm_yr_wk,
+    dayofweek(CAST(date AS DATE))                   AS day_of_week,
+    weekofyear(CAST(date AS DATE))                  AS week_of_year,
+    month(CAST(date AS DATE))                       AS month,
+    year(CAST(date AS DATE))                        AS year,
+    dayofweek(CAST(date AS DATE)) IN (0, 6)         AS is_weekend,
+    event_name_1,
+    event_type_1,
+    event_name_2,
+    event_type_2,
+    (event_name_1 IS NOT NULL OR event_name_2 IS NOT NULL) AS is_event,
+    (COALESCE(event_type_1, '') IN ('National', 'Religious')
+     OR COALESCE(event_type_2, '') IN ('National', 'Religious')) AS is_holiday,
+    CAST(snap_CA AS BOOLEAN)                        AS snap_ca,
+    CAST(snap_TX AS BOOLEAN)                        AS snap_tx,
+    CAST(snap_WI AS BOOLEAN)                        AS snap_wi
+FROM stg_calendar;
+
+INSERT INTO prices
+SELECT store_id, item_id AS sku_id, CAST(wm_yr_wk AS INTEGER), CAST(sell_price AS DOUBLE)
+FROM stg_prices;
+
+-- 4. Unpivot the wide daily sales matrix to long form --------------------------
+
+CREATE OR REPLACE TABLE stg_sales_long AS
+SELECT store_id, item_id AS sku_id, d, units_sold
+FROM (
+    UNPIVOT stg_sales_wide
+    ON COLUMNS('^d_\d+$')
+    INTO NAME d VALUE units_sold
+);
+
+-- 5. Sales fact: join dates and weekly prices; rows before a SKU's first priced
+--    week are dropped — M5 convention: the item was not yet on sale (ADR-013).
+
+INSERT INTO sales
+SELECT
+    l.store_id,
+    l.sku_id,
+    c.date,
+    CAST(l.units_sold AS INTEGER) AS units_sold,
+    p.sell_price
+FROM stg_sales_long l
+JOIN calendar c USING (d)
+JOIN prices p
+  ON p.store_id = l.store_id
+ AND p.sku_id   = l.sku_id
+ AND p.wm_yr_wk = c.wm_yr_wk;
+
+-- 6. Ingestion statistics (read and dropped by M5Ingestor) ----------------------
+
+CREATE OR REPLACE TABLE _ingest_stats AS
+SELECT
+    (SELECT COUNT(*) FROM stg_sales_long) AS unpivoted_rows,
+    (SELECT COUNT(*) FROM sales)          AS kept_rows;
+
+-- 7. Drop staging ---------------------------------------------------------------
+
+DROP TABLE stg_sales_long;
+DROP TABLE stg_sales_wide;
+DROP TABLE stg_prices;
+DROP TABLE stg_calendar;
