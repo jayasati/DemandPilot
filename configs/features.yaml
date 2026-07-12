@@ -1,0 +1,38 @@
+# Feature engineering configuration for the forecasting pipeline.
+# This file is the single source of truth for the feature set (ADR-010): the
+# feature SQL is generated from it. sql/rolling_features.sql mirrors it by hand
+# until the generator lands in Volume 2.
+
+target: units_sold
+date_column: date
+group_columns:
+  - store_id
+  - sku_id
+
+lag_features:
+  column: units_sold
+  lags: [1, 7, 14, 28]
+
+rolling_features:
+  column: units_sold
+  windows: [7, 14, 28]
+  aggregations: [mean, std, min, max]
+
+calendar_features:
+  - day_of_week
+  - week_of_year
+  - month
+  - is_weekend
+  - is_event
+  - is_holiday
+  - snap_flag
+
+categorical_features:
+  - store_id
+  - sku_id
+  - dept_id
+  - cat_id
+  - state_id
+
+numeric_features:
+  - sell_price

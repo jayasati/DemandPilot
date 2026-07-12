@@ -1,0 +1,17 @@
+# Economics used by the newsvendor optimization and reporting (ADR-012).
+#
+# M5 provides sell prices but not procurement costs, so all values are RATIOS
+# of the unit sell price. These are documented modeling ASSUMPTIONS, typical of
+# grocery/general-merchandise retail — revisit per engagement.
+#
+# Derived per unit of sell price:
+#   understock cost Cu = (1 - unit_cost_ratio) + stockout_penalty_ratio
+#   overstock  cost Co = (unit_cost_ratio - salvage_ratio) + holding_cost_ratio
+#   critical fractile  = Cu / (Cu + Co)
+
+currency: USD
+
+unit_cost_ratio: 0.65        # procurement cost as a share of sell price
+salvage_ratio: 0.35          # value recovered per unsold unit (markdown/clearance)
+holding_cost_ratio: 0.02     # holding cost per unit per period
+stockout_penalty_ratio: 0.10 # goodwill/substitution loss beyond the forgone margin

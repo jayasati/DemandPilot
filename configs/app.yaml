@@ -1,0 +1,31 @@
+# Application-level configuration for DemandPilot.
+# All paths, environment, and app-wide settings must be defined here — never
+# hardcoded in code. Relative paths resolve against the project root
+# (--root flag, DEMANDPILOT_ROOT env var, or the current working directory).
+
+project:
+  name: DemandPilot
+  version: "0.1.0"
+  environment: development  # development | staging | production
+
+paths:
+  data_dir: data
+  raw_data_dir: data/raw
+  m5_raw_dir: data/raw/m5
+  processed_data_dir: data/processed
+  snapshots_dir: data/snapshots
+  reports_dir: reports
+  logs_dir: logs
+  configs_dir: configs
+  sql_dir: sql
+  duckdb_path: data/demandpilot.duckdb
+
+mlflow:
+  tracking_uri: file:./mlruns
+  experiment_name: demandpilot
+
+streamlit:
+  host: 127.0.0.1  # bind all interfaces (0.0.0.0) only inside the container
+  port: 8501
+
+random_seed: 42

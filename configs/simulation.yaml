@@ -1,0 +1,12 @@
+# Inventory simulation configuration (newsvendor model). See docs/adr/003-newsvendor.md.
+
+policy: newsvendor  # newsvendor | (s,S) | ...
+
+service_level: 0.95
+lead_time_days: 7
+review_period_days: 1
+
+demand_distribution: empirical  # empirical | normal | poisson
+
+n_simulations: 1000
+random_seed: 42

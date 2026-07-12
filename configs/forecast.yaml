@@ -1,0 +1,46 @@
+# Probabilistic demand forecasting configuration (quantile LightGBM).
+# See docs/adr/002-lightgbm.md and docs/adr/008-direct-quantile-forecasting.md.
+#
+# Strategy is DIRECT multi-horizon: all lag/rolling features are shifted by at
+# least the forecast horizon, so quantile forecasts stay valid (recursion does
+# not compose for quantiles). One model is trained per quantile; the effective
+# quantile set at training time additionally includes the critical fractile
+# implied by configs/costs.yaml (ADR-012).
+
+target_column: units_sold
+date_column: date
+id_columns:
+  - store_id
+  - sku_id
+
+horizon_days: 28
+frequency: D  # D | W | M
+strategy: direct
+
+quantiles: [0.1, 0.5, 0.9]
+
+metrics: [pinball, coverage, wape, bias, rmse]
+
+train:
+  test_size_days: 28
+  validation_size_days: 28
+  cv_folds: 3
+
+model:
+  type: lightgbm
+  objective: quantile  # alpha is set per quantile at training time
+  params:
+    num_leaves: 31
+    learning_rate: 0.05
+    n_estimators: 500
+    max_depth: -1
+    min_child_samples: 20
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+  early_stopping_rounds: 50
+
+mlflow:
+  experiment_name: demandpilot-forecast
+  register_model: true
+  model_name: demandpilot-forecast-model
