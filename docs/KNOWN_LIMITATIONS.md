@@ -12,15 +12,29 @@ Honest list of what DemandPilot currently does **not** do, and why.
   biases forecasts slightly low (censored demand).
 - **Price is weekly**: daily price effects within a week are invisible.
 
-## Modeling (current design, revisited in Volume 3)
+## Modeling
 
 - **Fixed quantile set**: P10/P50/P90 + the critical fractile — not a full
-  predictive distribution; quantile crossing between independently trained
-  models is possible (will be monitored and post-sorted if observed).
+  predictive distribution. Quantile crossing between independently trained
+  models is corrected post-hoc by rearrangement
+  (`demandpilot.core.metrics.enforce_monotonic_quantiles`, ADR-002) rather
+  than prevented during training — the correction is a well-established
+  technique, but a jointly-monotonic training objective would be more
+  principled if crossing turns out to be frequent in practice.
+- **Horizon-as-feature, not per-horizon models** (ADR-015): one shared model
+  per quantile may fit horizon-dependent effects less precisely than 28
+  specialized models — an accepted training-cost trade-off, revisit if
+  backtests show horizon-dependent error patterns the shared model misses.
+- **Origin sampling** (`train.origin_stride_days`, ADR-015): training uses
+  1-in-N calendar days as forecast origins, not every day — a documented,
+  logged reduction to keep the assembled dataset tractable, not silent
+  truncation, but it does mean rare origin-specific patterns get less
+  training signal than a full-density dataset would provide.
 - **Intermittent demand**: plain quantile LightGBM may collapse low quantiles
-  to zero for slow movers (risk R5).
+  to zero for slow movers (risk R5) — not yet evaluated against real M5 data.
 - **Single-period newsvendor**: no multi-period carryover, lead-time demand
-  aggregation, or capacity constraints in the first optimization cut.
+  aggregation, or capacity constraints in the first optimization cut
+  (Volume 4).
 
 ## Engineering
 

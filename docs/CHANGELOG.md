@@ -7,6 +7,39 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Volume 3 (forecasting), 2026-07-12
+
+- `demandpilot.forecasting.HorizonDatasetAssembler` / `assemble_multi_horizon`:
+  self-join dataset assembly per ADR-008/014 — history-derived columns
+  (lags/rolling stats) from the ORIGIN row, calendar/price/dimension columns
+  from the TARGET row, stacked across horizons 1..`horizon_days` with
+  `horizon` as a feature and configurable origin-date sampling (ADR-015).
+- `demandpilot.forecasting.chronological_split`: time-ordered
+  train/validation/test partitioning by origin date — never shuffled.
+- `demandpilot.forecasting.QuantileForecaster`: one LightGBM quantile model
+  per quantile (config quantiles ∪ the cost-implied critical fractile,
+  ADR-012), with `demandpilot.core.metrics.enforce_monotonic_quantiles`
+  correcting quantile crossing post-hoc.
+- `demandpilot.core.metrics`: pinball loss, coverage, WAPE, bias, RMSE — pure
+  functions, unit-tested against hand-computed values.
+- `demandpilot.forecasting.ForecastingPipeline`: orchestrates assemble → split
+  → train → backtest → MLflow logging (params, metrics, and optional model
+  registration under `{model_name}-q{quantile}`).
+- CLI: `demandpilot train [--snapshot-version N]`.
+- `configs/forecast.yaml`: added `train.origin_stride_days`.
+- Shared `demandpilot.features.naming` module (column-naming helpers factored
+  out of the Volume 2 generator so the forecasting dataset assembler agrees
+  on column names without duplicating the convention).
+- New exception `ForecastError`.
+- **MLflow tracking backend corrected to SQLite** (`sqlite:///mlruns/mlflow.db`):
+  empirically verified that the installed MLflow (3.14) puts the plain
+  filesystem tracking store into maintenance mode and raises on
+  `start_run()`; ADR-006 updated accordingly. `demandpilot.cli.
+  _resolve_mlflow_tracking_uri` resolves a relative `sqlite:///`/`file:` URI
+  against `--root` (MLflow itself only resolves against cwd).
+- New ADRs: 014 (future-known vs. history-derived feature split), 015
+  (horizon-as-feature training + origin sampling).
+
 ### Added — Volume 2 (feature engineering), 2026-07-12
 
 - `demandpilot.features.FeatureSqlGenerator`: renders the `rolling_features`

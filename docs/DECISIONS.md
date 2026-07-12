@@ -14,3 +14,6 @@ architecture/technology decisions, see [adr/](adr/README.md).
 | 2026-07-12 | Costs expressed as ratios of sell price | M5 has prices but no procurement costs; per-SKU absolute costs don't transfer |
 | 2026-07-12 | CLI built on argparse (stdlib), not click/typer | Three subcommands don't justify a dependency (YAGNI) |
 | 2026-07-12 | Test fixtures are deterministic M5-format CSVs | Exercise ingestion without violating the no-fake-data rule (see TESTING.md) |
+| 2026-07-12 | MLflow tracking backend switched from `file:./mlruns` to `sqlite:///mlruns/mlflow.db` | Installed MLflow (3.14) raises on plain file-store `start_run()` — "maintenance mode"; verified empirically before writing code against it (ADR-006) |
+| 2026-07-12 | Quantile crossing fixed by post-hoc rearrangement, not a joint training objective | Standard, simple, and effective (Chernozhukov et al.); revisit only if backtests show it's insufficient |
+| 2026-07-12 | Metrics config (`forecast.yaml`'s `metrics` list) documents intent, not a gate | The 5 core metrics are cheap pure functions always computed; the list will drive what Volume 6 reporting surfaces |

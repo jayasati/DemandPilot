@@ -2,30 +2,38 @@
 
 ## Mechanism
 
-MLflow Model Registry (local file store by default; server via docker compose).
-Configured in `configs/forecast.yaml` (`register_model`, `model_name`).
+MLflow Model Registry, local SQLite backend by default (ADR-006). Registration
+is controlled by `configs/forecast.yaml`'s `mlflow.register_model` /
+`mlflow.model_name`. **One registered model per quantile**, named
+`{model_name}-q{quantile}` (e.g. `demandpilot-forecast-model-q0_1`) — so
+P10/P50/P90 are distinct, independently versioned registry entries, never
+confused with each other.
 
-## What every registered model version records
+## What every registered model version records (as of Volume 3)
 
-- **Lineage**: feature snapshot id (docs/DATA_VERSIONING.md), git commit,
-  full resolved config (logged as artifacts/params).
-- **Quantile identity**: one LightGBM model per quantile — the quantile (and
-  whether it is the cost-implied critical fractile) is a first-class tag, so
-  P10/P50/P90 models are never confused.
-- **Evaluation**: backtest metrics (pinball per quantile, coverage, WAPE,
-  bias, RMSE) from the rolling-origin backtest, logged in the same run.
+- The trained LightGBM booster itself (`mlflow.lightgbm.log_model`).
+- **Lineage, via the run it belongs to**: the exact `feature_store_v{N}`
+  snapshot table trained on (a run param — traceable to that snapshot's git
+  commit and config hash in the `feature_snapshots` manifest, ADR-011),
+  `horizon_days`, `origin_stride_days`, and every LightGBM hyperparameter.
+- **Evaluation, via the same run**: pinball loss and coverage for every
+  quantile, plus WAPE/bias/RMSE from the median model.
 
-## Promotion policy (from Volume 3)
+## Not yet implemented
 
-- `None` → `Staging`: automated — training run completed, metrics logged,
-  invariants pass (quantile monotonicity P10 ≤ P50 ≤ P90, coverage within
-  tolerance).
-- `Staging` → `Production`: manual — requires a backtest comparison against the
-  current production version; the comparison lands in the PR.
-- Downstream consumers (optimization, simulation, dashboard) load only
-  `Production` models by name — never a run id.
+Automatic stage promotion (`None` → `Staging` → `Production`) is **not**
+built — every call to `demandpilot train` with `register_model: true` creates
+a new model version with no stage assigned. A promotion policy (backtest
+comparison against the current production version, invariant checks such as
+quantile monotonicity before promoting) is planned once there is a second
+volume's worth of models to actually compare against; documenting an
+unbuilt promotion workflow here would violate the "never generate fake
+implementations" rule. Downstream consumers (optimization, simulation,
+dashboard, from Volume 4 onward) should load a specific version explicitly
+until promotion exists.
 
 ## Invariant
 
-A model version with no recorded snapshot id or git commit is invalid by
-definition and must not be promoted.
+A model version whose run has no `snapshot_table` param is invalid by
+definition and must not be relied upon — `ForecastingPipeline` always logs
+this param, so its absence indicates a run that bypassed the pipeline.

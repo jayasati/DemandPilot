@@ -14,6 +14,7 @@ or the current directory), `--version`.
 | `init-db` | Create all tables and views from `sql/` | 0 / 1 on error |
 | `ingest-m5 [--raw-dir PATH]` | Ingest the M5 CSVs, then run the validation suite | 1 if ingest **or validation** fails |
 | `build-features` | Generate `rolling_features`/`feature_store` from config and materialize a new `feature_store_v{N}` snapshot | 0 / 1 on error |
+| `train [--snapshot-version N]` | Assemble a multi-horizon dataset from a feature snapshot (latest by default), chronologically split, train quantile models, backtest, log to MLflow | 0 / 1 on error |
 | `validate` | Re-run the 13-check validation suite | 1 on any failing check |
 
 All commands read configuration exclusively from `<root>/configs/` and log to
@@ -30,7 +31,11 @@ Stable, typed, documented interfaces intended for reuse (e.g. notebooks):
 - `demandpilot.data.DataValidator(db).run() -> ValidationReport`.
 - `demandpilot.features.FeatureSqlGenerator(renderer).render(features_config) -> str`.
 - `demandpilot.features.FeatureSnapshotBuilder(db, sql_dir, root).build(features_config) -> SnapshotInfo`.
+- `demandpilot.forecasting.assemble_multi_horizon(connection, assembler, features_config, snapshot_table, horizon_days, origin_stride_days) -> pl.DataFrame`.
+- `demandpilot.forecasting.chronological_split(dataset, train_config) -> DatasetSplit`.
+- `demandpilot.forecasting.ForecastingPipeline(sql_dir).run(connection, features_config, forecast_config, costs_config, snapshot_table=None) -> BacktestReport`.
 - `demandpilot.core.newsvendor.critical_fractile(cu, co) -> float`.
+- `demandpilot.core.metrics`: `pinball_loss`, `coverage`, `wape`, `bias`, `rmse`, `enforce_monotonic_quantiles`.
 - `demandpilot.sqlrender.SqlRenderer(sql_dir).render(name, **params) -> str`.
 
 Anything prefixed with `_` is private and may change without notice. Errors are

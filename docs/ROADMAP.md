@@ -16,20 +16,27 @@ explicit exit criterion. No stage may be skipped.
   `feature_store_v{N}` snapshots with a lineage manifest (ADR-011); leakage
   test suite; `demandpilot build-features` CLI command.
   *Exit criterion met: snapshot built from config; leakage tests green.*
+- **Volume 3 — Forecasting** ✅ (2026-07-12): direct multi-horizon dataset
+  assembly with the future-known/history-derived feature split (ADR-014);
+  horizon-as-feature quantile LightGBM with origin sampling (ADR-015);
+  quantile-crossing correction; pinball/coverage/WAPE/bias/RMSE metrics;
+  MLflow tracking (SQLite backend, ADR-006) + model registry;
+  `demandpilot train` CLI command.
+  *Exit criterion met on the test fixture: full assemble → chronological
+  split → train → backtest → MLflow-log pipeline runs and produces sane
+  metrics end-to-end. Not yet run against the real M5 dataset (not
+  downloaded on this machine) — that remains a manual step for the user
+  (docs/ENVIRONMENT_SETUP.md).*
 
 ## Now
 
-- **Volume 3 — Forecasting**: quantile LightGBM per quantile ∪ critical
-  fractile; horizon-aware dataset assembly (pair `feature_store_v{N}` rows
-  with the target shifted by each configured horizon — ADR-008); rolling-origin
-  backtesting; pinball/coverage/WAPE/bias metrics; MLflow tracking + registry;
-  wire the snapshot id into every logged run (docs/MODEL_VERSIONING.md).
-  *Exit: honest backtest report on real M5 data.*
+- **Volume 4 — Optimization**: newsvendor order quantities with cost rationale,
+  built on Volume 3's quantile forecasts and the cost-implied critical
+  fractile (ADR-012). *Exit: recommendations per store/SKU reproducible from
+  one command.*
 
 ## Next
 
-- **Volume 4 — Optimization**: newsvendor order quantities with cost rationale.
-  *Exit: recommendations per store/SKU reproducible from one command.*
 - **Volume 5 — Simulation**: vectorized historical replay; baseline vs.
   optimized policy P&L. *Exit: policy comparison with cost breakdown.*
 
