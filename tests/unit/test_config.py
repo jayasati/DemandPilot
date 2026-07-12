@@ -5,6 +5,7 @@ import yaml
 from pydantic import ValidationError
 
 from demandpilot.config import CostsConfig, ForecastConfig, load_config
+from demandpilot.config.models import SimulationConfig
 from demandpilot.exceptions import ConfigError
 
 
@@ -82,3 +83,11 @@ def test_forecast_regression_objective_rejected(repo_root):
     raw["model"]["objective"] = "regression"  # point forecasts violate the contract
     with pytest.raises(ValidationError):
         ForecastConfig(**raw)
+
+
+def test_simulation_zero_lead_time_rejected(repo_root):
+    """lead_time_days=0 would self-join a row to itself (leakage) — must be >= 1."""
+    raw = yaml.safe_load((repo_root / "configs" / "simulation.yaml").read_text(encoding="utf-8"))
+    raw["lead_time_days"] = 0
+    with pytest.raises(ValidationError, match="lead_time_days"):
+        SimulationConfig(**raw)

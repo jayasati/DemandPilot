@@ -218,7 +218,10 @@ class SimulationConfig(_FrozenModel):
 
     policy: Literal["newsvendor"]
     service_level: float = Field(gt=0, lt=1)
-    lead_time_days: int = Field(ge=0)
+    # >=1: used as a self-join horizon (RecommendationBuilder, SimulationEngine)
+    # matching target = origin + lead_time_days; 0 would join a row to itself,
+    # predicting a row from its own future value (leakage).
+    lead_time_days: int = Field(ge=1)
     review_period_days: int = Field(ge=1)
     demand_distribution: Literal["empirical", "normal", "poisson"]
     n_simulations: int = Field(ge=1)

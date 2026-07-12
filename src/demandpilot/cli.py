@@ -6,6 +6,7 @@ Commands:
     build-features Generate feature SQL from config and materialize a snapshot.
     train          Assemble a dataset, train quantile models, and backtest.
     recommend      Build newsvendor order-quantity recommendations.
+    simulate       Replay the ML vs. classical policy over historical decisions.
     validate       Re-run the data validation suite against the database.
 """
 
@@ -25,6 +26,7 @@ from demandpilot.features import FeatureSnapshotBuilder
 from demandpilot.forecasting import ForecastingPipeline
 from demandpilot.logging_setup import setup_logging
 from demandpilot.optimization import RecommendationBuilder, persist_recommendations
+from demandpilot.simulation import SimulationEngine, persist_simulation_results
 from demandpilot.sqlrender import SqlRenderer
 
 logger = logging.getLogger(__name__)
@@ -83,6 +85,16 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Horizon to recommend for (default: simulation.yaml's lead_time_days).",
+    )
+
+    simulate = subparsers.add_parser(
+        "simulate", help="Replay the ML quantile policy vs. the classical baseline historically."
+    )
+    simulate.add_argument(
+        "--snapshot-version",
+        type=int,
+        default=None,
+        help="Feature snapshot version to use (default: the most recently built one).",
     )
 
     subparsers.add_parser("validate", help="Run the data validation suite.")
@@ -202,6 +214,40 @@ def _run_recommend(
     return 0
 
 
+def _run_simulate(config: DemandPilotConfig, snapshot_version: int | None) -> int:
+    """Replay the ML quantile policy vs. the classical baseline and persist the comparison."""
+    db = Database(config.app.paths.duckdb_path)
+    snapshot_table = f"feature_store_v{snapshot_version}" if snapshot_version else None
+    engine = SimulationEngine(config.app.paths.sql_dir)
+    with db.connect() as connection:
+        comparison = engine.run(
+            connection,
+            config.features,
+            config.forecast,
+            config.costs,
+            config.simulation,
+            snapshot_table,
+        )
+        persist_simulation_results(connection, comparison)
+    logger.info(
+        "Simulated %d decisions on %s (lead_time_days=%d, review_period_days=%d, %s "
+        "baseline @ service_level=%.2f)",
+        comparison.ml_metrics.n_decisions,
+        comparison.snapshot_table,
+        comparison.lead_time_days,
+        comparison.review_period_days,
+        comparison.demand_distribution,
+        comparison.service_level,
+    )
+    logger.info(
+        "ML policy total cost: %.2f | classical baseline total cost: %.2f | savings: %.2f",
+        comparison.ml_metrics.total_cost,
+        comparison.baseline_metrics.total_cost,
+        comparison.savings,
+    )
+    return 0
+
+
 def _run_validate(config: DemandPilotConfig) -> int:
     """Run validation checks and report the outcome."""
     report = DataValidator(Database(config.app.paths.duckdb_path)).run()
@@ -234,6 +280,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_train(config, args.snapshot_version)
         if args.command == "recommend":
             return _run_recommend(config, args.snapshot_version, args.lead_time_days)
+        if args.command == "simulate":
+            return _run_simulate(config, args.snapshot_version)
         return _run_validate(config)
     except DemandPilotError as exc:
         # Logging may not be configured yet if config loading failed.

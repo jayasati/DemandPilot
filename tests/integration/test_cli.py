@@ -1,5 +1,5 @@
 """End-to-end CLI tests: init-db -> ingest-m5 -> build-features -> train ->
-recommend -> validate."""
+recommend -> simulate -> validate."""
 
 import pytest
 
@@ -98,6 +98,34 @@ def test_recommend_fails_cleanly_when_lead_time_exceeds_data_range(
     assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
     assert main(["--root", root, "build-features"]) == 0
     assert main(["--root", root, "recommend", "--lead-time-days", "1000"]) == 1
+
+
+def test_simulate_succeeds_with_a_split_sized_for_the_fixture(
+    tmp_project, m5_fixture_dir, reset_logging
+):
+    root = str(tmp_project)
+    (tmp_project / "configs" / "forecast.yaml").write_text(_SMALL_FORECAST_YAML, encoding="utf-8")
+    assert main(["--root", root, "init-db"]) == 0
+    assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
+    assert main(["--root", root, "simulate"]) == 0
+
+
+def test_simulate_fails_cleanly_when_lead_time_exceeds_data_range(
+    tmp_project, m5_fixture_dir, reset_logging
+):
+    root = str(tmp_project)
+    (tmp_project / "configs" / "forecast.yaml").write_text(_SMALL_FORECAST_YAML, encoding="utf-8")
+    (tmp_project / "configs" / "simulation.yaml").write_text(
+        "policy: newsvendor\nservice_level: 0.9\nlead_time_days: 1000\n"
+        "review_period_days: 1\ndemand_distribution: empirical\n"
+        "n_simulations: 200\nrandom_seed: 42\n",
+        encoding="utf-8",
+    )
+    assert main(["--root", root, "init-db"]) == 0
+    assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
+    assert main(["--root", root, "simulate"]) == 1
 
 
 def test_ingest_with_missing_raw_dir_fails(tmp_project, reset_logging):

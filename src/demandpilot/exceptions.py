@@ -46,3 +46,7 @@ class ForecastError(DemandPilotError):
 
 class OptimizationError(DemandPilotError):
     """A newsvendor recommendation step (assembly, training, persistence) failed."""
+
+
+class SimulationError(DemandPilotError):
+    """A policy-replay simulation step (assembly, splitting, persistence) failed."""

@@ -54,3 +54,65 @@ def safety_stock(order_quantity: float, median_demand: float) -> float:
         ``order_quantity - median_demand``.
     """
     return order_quantity - median_demand
+
+
+def realized_cost_breakdown(
+    order_quantity: float,
+    actual_demand: float,
+    understock_cost_ratio: float,
+    overstock_cost_ratio: float,
+    sell_price: float,
+) -> tuple[float, float]:
+    """Realized newsvendor cost for one decision, split by cause.
+
+    ``understock_cost = Cu * max(D - Q, 0) * sell_price``;
+    ``overstock_cost = Co * max(Q - D, 0) * sell_price`` — scaled by
+    ``sell_price`` since cost ratios are expressed per unit of sell price
+    (ADR-012). Exactly one of the two is nonzero for any given decision.
+
+    Args:
+        order_quantity: The quantity ordered (``Q``).
+        actual_demand: The realized demand (``D``).
+        understock_cost_ratio: ``Cu`` as a ratio of sell price.
+        overstock_cost_ratio: ``Co`` as a ratio of sell price.
+        sell_price: The unit's sell price on the day demand was realized.
+
+    Returns:
+        ``(understock_cost, overstock_cost)``, in the same currency as
+        ``sell_price``.
+    """
+    understock_units = max(actual_demand - order_quantity, 0.0)
+    overstock_units = max(order_quantity - actual_demand, 0.0)
+    return (
+        sell_price * understock_cost_ratio * understock_units,
+        sell_price * overstock_cost_ratio * overstock_units,
+    )
+
+
+def realized_cost(
+    order_quantity: float,
+    actual_demand: float,
+    understock_cost_ratio: float,
+    overstock_cost_ratio: float,
+    sell_price: float,
+) -> float:
+    """Total realized newsvendor cost for one decision, in currency units.
+
+    The sum of :func:`realized_cost_breakdown`'s two components. Used by
+    Volume 5's historical policy replay to compare policies in real
+    currency, not dimensionless ratios.
+
+    Args:
+        order_quantity: The quantity ordered (``Q``).
+        actual_demand: The realized demand (``D``).
+        understock_cost_ratio: ``Cu`` as a ratio of sell price.
+        overstock_cost_ratio: ``Co`` as a ratio of sell price.
+        sell_price: The unit's sell price on the day demand was realized.
+
+    Returns:
+        The realized cost, in the same currency as ``sell_price``.
+    """
+    understock_cost, overstock_cost = realized_cost_breakdown(
+        order_quantity, actual_demand, understock_cost_ratio, overstock_cost_ratio, sell_price
+    )
+    return understock_cost + overstock_cost
