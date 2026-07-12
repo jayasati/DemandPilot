@@ -1,0 +1,130 @@
+[project]
+name = "demandpilot"
+version = "0.1.0"
+description = "Decision-intelligence platform for retail demand forecasting, inventory optimization, and business simulation"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "DemandPilot contributors" }]
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "duckdb>=1.2",
+    "polars>=1.20",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "lightgbm>=4.3",
+    "mlflow>=2.15",
+    "streamlit>=1.38",
+    "jinja2>=3.1,<4",
+    "plotly>=5.22",
+    "pyyaml>=6.0",
+    "pydantic>=2.7,<3",
+]
+
+[project.scripts]
+demandpilot = "demandpilot.cli:main"
+
+[tool.poetry]
+packages = [{ include = "demandpilot", from = "src" }]
+
+[tool.poetry.group.dev.dependencies]
+black = ">=24.4"
+ruff = ">=0.6"
+mypy = ">=1.10"
+pytest = ">=8.2"
+pytest-cov = ">=5.0"
+pre-commit = ">=3.7"
+poethepoet = ">=0.27"
+types-PyYAML = ">=6.0"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ---------------------------------------------------------------------------
+# Formatting / linting
+# ---------------------------------------------------------------------------
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # bugbear
+    "UP",  # pyupgrade
+    "SIM", # simplify
+    "C4",  # comprehensions
+    "ARG", # unused arguments
+    "RUF", # ruff-specific
+    "D",   # pydocstyle — enforces the "every public function has a docstring" rule
+]
+ignore = [
+    "D203", # incompatible with D211
+    "D213", # incompatible with D212
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ARG"]  # tests document themselves; fixture params look unused
+"scripts/**" = ["D103"]
+
+# ---------------------------------------------------------------------------
+# Typing
+# ---------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["demandpilot"]
+strict = true
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["duckdb.*", "lightgbm.*", "mlflow.*", "plotly.*", "scipy.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Testing
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: tests that exercise DuckDB / the filesystem end-to-end",
+]
+
+[tool.coverage.run]
+source = ["src/demandpilot"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+
+# ---------------------------------------------------------------------------
+# Task runner (cross-platform; `poe <task>`)
+# ---------------------------------------------------------------------------
+
+[tool.poe.tasks]
+fmt = "black src tests scripts"
+lint = "ruff check src tests scripts"
+lint-fix = "ruff check --fix src tests scripts"
+typecheck = "mypy"
+test = "pytest"
+cov = "pytest --cov --cov-report=term-missing"
+check = ["fmt-check", "lint", "typecheck", "cov"]
+fmt-check = "black --check src tests scripts"
