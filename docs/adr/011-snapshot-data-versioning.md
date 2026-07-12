@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (implementation lands in Volume 2)
+Accepted; implemented in Volume 2.
 
 ## Context
 
@@ -17,10 +17,14 @@ reproducibility.
 
 ## Decision
 
-Training data is materialized: `CREATE TABLE feature_store_v{N} AS SELECT ...`
-in DuckDB, with a manifest table recording snapshot id, timestamp, git commit
-of the generating code, config hash, row count, and date range. Models train
-only on snapshots; MLflow runs record the snapshot id (docs/MODEL_VERSIONING.md).
+`demandpilot.features.FeatureSnapshotBuilder.build()` materializes
+`CREATE TABLE feature_store_v{N} AS SELECT * FROM feature_store`, where `N`
+auto-increments from a `feature_snapshots` manifest table
+(`sql/feature_snapshots.sql`) recording: `version`, `table_name`,
+`created_at`, `git_commit` (via `git rev-parse HEAD`, `NULL` if unavailable —
+e.g. no git installed), `config_hash` (SHA-256 of the resolved
+`FeaturesConfig`, truncated), `row_count`, `min_date`, `max_date`. Models train
+only on a named snapshot table, never on the live `feature_store` view.
 Everything under `data/` remains disposable and reconstructible.
 
 ## Consequences
@@ -29,6 +33,10 @@ Everything under `data/` remains disposable and reconstructible.
   data. Backtests are re-runnable on the exact bytes a model saw.
 - Snapshots cost disk (~GBs each at M5 scale) — acceptable locally; a pruning
   policy (keep last K + any referenced by a registered model) comes with
-  Volume 3.
+  Volume 3, alongside wiring the snapshot id into MLflow runs
+  (docs/MODEL_VERSIONING.md).
 - Revisit if the project ever ingests mutable upstream data — that's the point
   where DVC-style tooling earns its keep.
+- Verified end-to-end by `tests/integration/test_features.py` (version
+  increments, manifest lineage matches the built table, row counts match
+  `sales`, no current-day leakage in the materialized table).

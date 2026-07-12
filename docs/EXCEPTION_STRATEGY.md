@@ -7,6 +7,7 @@ DemandPilotError
 ├── ConfigError            missing/unparsable/invalid configuration
 ├── DatabaseError          DuckDB operation failed
 ├── SqlRenderError         SQL template missing or failed to render
+├── FeatureError           feature SQL generation or snapshot build failed
 └── DataError
     ├── IngestionError     raw data missing/malformed
     └── DataValidationError ingested data failed integrity checks

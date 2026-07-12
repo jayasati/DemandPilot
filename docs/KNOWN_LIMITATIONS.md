@@ -27,8 +27,10 @@ Honest list of what DemandPilot currently does **not** do, and why.
 - **Single-node by design**: DuckDB + one machine. Fine for M5 (~59M rows);
   beyond ~10× that, the storage ADR must be revisited (MotherDuck/warehouse).
 - **Single writer**: pipeline steps must not run concurrently against one DB file.
-- **`rolling_features.sql` is hand-mirrored** from `configs/features.yaml`
-  until the Volume 2 generator replaces it — the one temporary DRY exception.
+- **`sql/feature_store.sql` is still hand-written** (the dimensional join
+  itself, not the rolling features it selects via `rf.* EXCLUDE (...)`) —
+  acceptable since it has no config-duplication risk today; would need
+  generation too if the dimensional join set ever became config-driven.
 - Python 3.12 is the floor but local dev runs 3.13; both are in CI.
 
 ## Future extensions (beyond the roadmap)

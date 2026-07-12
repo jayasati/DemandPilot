@@ -62,7 +62,33 @@ Columns: `units_sold INTEGER`, `sell_price DOUBLE` (the week's price).
 
 ## Views
 
-- `rolling_features` — leakage-safe lags/rolling windows (mirrors `configs/features.yaml`).
-- `feature_store` — model-ready join of sales, dims, calendar, rolling features.
+- `rolling_features` — leakage-safe lags/rolling windows, **generated** from
+  `configs/features.yaml` by `demandpilot.features.FeatureSqlGenerator`
+  (ADR-010). Created by `demandpilot build-features`, not by `init-db` — DuckDB
+  binds views eagerly, so this only exists once that command has run.
+- `feature_store` — model-ready join of sales, dims, calendar, and
+  `rolling_features` (`rf.* EXCLUDE (store_id, sku_id, date)`, so it needs no
+  edits when the lag/window set changes). Also created by `build-features`.
 - `sales_summary` — daily totals by state/category for dashboards.
 - `series_coverage` — first/last date and row count per (store, sku).
+
+## Feature snapshots (ADR-011)
+
+`demandpilot build-features` also materializes the current `feature_store`
+view into a versioned table and records its lineage:
+
+### `feature_snapshots` (manifest)
+| column | type | notes |
+|---|---|---|
+| version | INTEGER PK | auto-increments from `MAX(version) + 1` |
+| table_name | VARCHAR UNIQUE | e.g. `feature_store_v3` |
+| created_at | TIMESTAMP | UTC |
+| git_commit | VARCHAR | `git rev-parse HEAD` at build time; NULL if git unavailable |
+| config_hash | VARCHAR | SHA-256 of the resolved `FeaturesConfig`, truncated to 16 hex chars |
+| row_count | BIGINT | rows in the snapshot table |
+| min_date / max_date | DATE | date range covered |
+
+### `feature_store_v{N}` (snapshot tables)
+Full materialization of `feature_store` at build time — one per call to
+`build-features`. Volume 3 trains only against a named snapshot, never the
+live view, so training data is always reproducible.

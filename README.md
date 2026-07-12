@@ -15,8 +15,9 @@ delivers results through generated executive reports and a Streamlit dashboard.
 |---|---|---|
 | 0 | Foundation: tooling, CI, docs, config system | ✅ done |
 | 1 | Data layer: M5 ingestion, schema, validation | ✅ done |
-| 2 | Feature engineering (config-generated SQL) | ⏳ next |
-| 3–8 | Forecasting → optimization → simulation → reporting → dashboard → hardening | planned |
+| 2 | Feature engineering: config-generated SQL, versioned snapshots | ✅ done |
+| 3 | Forecasting: quantile LightGBM, backtesting, MLflow | ⏳ next |
+| 4–8 | Optimization → simulation → reporting → dashboard → hardening | planned |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -36,6 +37,7 @@ poetry run python scripts/download_m5.py
 # Build and validate the database
 poetry run demandpilot init-db
 poetry run demandpilot ingest-m5         # ingests, then runs the validation suite
+poetry run demandpilot build-features    # generates feature SQL, materializes a snapshot
 poetry run demandpilot validate
 ```
 

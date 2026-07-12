@@ -10,8 +10,9 @@ newsvendor inventory optimization, historical policy simulation, generated
 executive reports, and a Streamlit dashboard. DuckDB is the analytical store;
 all configuration is validated Pydantic models loaded from `configs/`.
 
-Work proceeds in volumes (see `docs/ROADMAP.md`). Volumes 0–1 are complete
-(foundation + data layer); Volume 2 (config-generated feature SQL) is next.
+Work proceeds in volumes (see `docs/ROADMAP.md`). Volumes 0–2 are complete
+(foundation, data layer, feature engineering); Volume 3 (quantile forecasting)
+is next.
 
 ## Structure
 

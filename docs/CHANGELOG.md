@@ -7,6 +7,30 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Volume 2 (feature engineering), 2026-07-12
+
+- `demandpilot.features.FeatureSqlGenerator`: renders the `rolling_features`
+  view SQL from `configs/features.yaml` — one `LAG(...)` per configured lag,
+  one windowed aggregation per window × aggregation pair, every window
+  hardcoded to end at `1 PRECEDING` regardless of config (ADR-010).
+- `demandpilot.features.FeatureSnapshotBuilder`: builds `rolling_features` +
+  `feature_store`, then materializes a versioned `feature_store_v{N}` table
+  with a `feature_snapshots` lineage manifest (version, git commit, config
+  hash, row count, date range — ADR-011).
+- CLI: `demandpilot build-features`.
+- `sql/feature_store.sql` now selects `rf.* EXCLUDE (store_id, sku_id, date)`
+  instead of naming every rolling-feature column — stays valid across config
+  changes with no edits.
+- Leakage test suite (`tests/integration/test_features.py`,
+  `tests/unit/test_feature_generator.py`): generated SQL never contains
+  `CURRENT ROW`, materialized snapshots reproduce the leakage-safety property
+  end-to-end.
+- New exception `FeatureError`.
+- ADR-008 corrected: direct multi-horizon forecasting uses the target-shift
+  formulation (one leakage-safe feature snapshot serves every horizon; Volume
+  3 pairs it with a horizon-shifted target) rather than per-horizon feature
+  shifting — simpler and equivalent.
+
 ### Added — Volume 0 (foundation) & Volume 1 (data layer), 2026-07-12
 
 - Typed configuration system: all `configs/*.yaml` validated into frozen
