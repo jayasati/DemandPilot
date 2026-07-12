@@ -24,7 +24,7 @@ import numpy as np
 
 from demandpilot.config.models import CostsConfig, FeaturesConfig, ForecastConfig
 from demandpilot.core.metrics import bias, coverage, pinball_loss, rmse, wape
-from demandpilot.exceptions import ForecastError
+from demandpilot.features.snapshots import latest_snapshot_table
 from demandpilot.forecasting.dataset import HorizonDatasetAssembler, assemble_multi_horizon
 from demandpilot.forecasting.model import QuantileForecaster, QuantileModel
 from demandpilot.forecasting.split import chronological_split
@@ -56,20 +56,6 @@ class BacktestReport:
     bias: float
     rmse: float
     mlflow_run_id: str | None
-
-
-def _latest_snapshot_table(connection: duckdb.DuckDBPyConnection) -> str:
-    """Return the most recently built snapshot table name.
-
-    Raises:
-        ForecastError: If no snapshot has ever been built.
-    """
-    row = connection.execute(
-        "SELECT table_name FROM feature_snapshots ORDER BY version DESC LIMIT 1"
-    ).fetchone()
-    if row is None:
-        raise ForecastError("No feature snapshots found — run `demandpilot build-features` first.")
-    return str(row[0])
 
 
 class ForecastingPipeline:
@@ -106,10 +92,11 @@ class ForecastingPipeline:
             The backtest report, including the MLflow run id.
 
         Raises:
-            ForecastError: If no snapshot exists, or the dataset has too few
-                distinct origin dates for the configured split sizes.
+            FeatureError: If no snapshot exists.
+            ForecastError: If the dataset has too few distinct origin dates
+                for the configured split sizes.
         """
-        table = snapshot_table or _latest_snapshot_table(connection)
+        table = snapshot_table or latest_snapshot_table(connection)
         logger.info("Assembling multi-horizon dataset from %s", table)
         dataset = assemble_multi_horizon(
             connection,

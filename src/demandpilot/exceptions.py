@@ -42,3 +42,7 @@ class FeatureError(DemandPilotError):
 
 class ForecastError(DemandPilotError):
     """A forecasting step (dataset assembly, splitting, training) failed."""
+
+
+class OptimizationError(DemandPilotError):
+    """A newsvendor recommendation step (assembly, training, persistence) failed."""

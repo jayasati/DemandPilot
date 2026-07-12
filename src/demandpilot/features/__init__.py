@@ -8,6 +8,15 @@ store into a versioned ``feature_store_v{N}`` table with a lineage manifest
 """
 
 from demandpilot.features.generator import FeatureSqlGenerator
-from demandpilot.features.snapshots import FeatureSnapshotBuilder, SnapshotInfo
+from demandpilot.features.snapshots import (
+    FeatureSnapshotBuilder,
+    SnapshotInfo,
+    latest_snapshot_table,
+)
 
-__all__ = ["FeatureSnapshotBuilder", "FeatureSqlGenerator", "SnapshotInfo"]
+__all__ = [
+    "FeatureSnapshotBuilder",
+    "FeatureSqlGenerator",
+    "SnapshotInfo",
+    "latest_snapshot_table",
+]

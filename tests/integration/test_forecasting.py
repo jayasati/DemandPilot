@@ -17,7 +17,7 @@ from demandpilot.config.models import (
     TrainConfig,
 )
 from demandpilot.data import Database, M5Ingestor, apply_schema
-from demandpilot.exceptions import ForecastError
+from demandpilot.exceptions import FeatureError
 from demandpilot.features import FeatureSnapshotBuilder
 from demandpilot.forecasting import (
     ForecastingPipeline,
@@ -225,7 +225,7 @@ def test_forecasting_pipeline_raises_without_any_snapshot(repo_root, tmp_path, m
     pipeline = ForecastingPipeline(repo_root / "sql")
     with (
         db.connect(read_only=True) as con,
-        pytest.raises(ForecastError, match="No feature snapshots"),
+        pytest.raises(FeatureError, match="No feature snapshots"),
     ):
         pipeline.run(con, features_config, _small_forecast_config(), _costs_config())
 

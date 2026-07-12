@@ -42,6 +42,23 @@ class SnapshotInfo:
     max_date: date | None
 
 
+def latest_snapshot_table(connection: duckdb.DuckDBPyConnection) -> str:
+    """Return the most recently built snapshot table name.
+
+    Shared by the forecasting and optimization layers so both resolve "the
+    current snapshot" the same way.
+
+    Raises:
+        FeatureError: If no snapshot has ever been built.
+    """
+    row = connection.execute(
+        "SELECT table_name FROM feature_snapshots ORDER BY version DESC LIMIT 1"
+    ).fetchone()
+    if row is None:
+        raise FeatureError("No feature snapshots found — run `demandpilot build-features` first.")
+    return str(row[0])
+
+
 class FeatureSnapshotBuilder:
     """Builds the feature views from config, then materializes a snapshot."""
 

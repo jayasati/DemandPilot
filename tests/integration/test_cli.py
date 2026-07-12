@@ -1,4 +1,5 @@
-"""End-to-end CLI tests: init-db -> ingest-m5 -> build-features -> train -> validate."""
+"""End-to-end CLI tests: init-db -> ingest-m5 -> build-features -> train ->
+recommend -> validate."""
 
 import pytest
 
@@ -75,6 +76,28 @@ def test_train_succeeds_with_a_split_sized_for_the_fixture(
     # mlflow.tracking_uri ("sqlite:///mlruns/mlflow.db") must resolve against
     # --root, not cwd.
     assert (tmp_project / "mlruns" / "mlflow.db").is_file()
+
+
+def test_recommend_succeeds_with_a_split_sized_for_the_fixture(
+    tmp_project, m5_fixture_dir, reset_logging
+):
+    root = str(tmp_project)
+    (tmp_project / "configs" / "forecast.yaml").write_text(_SMALL_FORECAST_YAML, encoding="utf-8")
+    assert main(["--root", root, "init-db"]) == 0
+    assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
+    assert main(["--root", root, "recommend", "--lead-time-days", "3"]) == 0
+
+
+def test_recommend_fails_cleanly_when_lead_time_exceeds_data_range(
+    tmp_project, m5_fixture_dir, reset_logging
+):
+    root = str(tmp_project)
+    (tmp_project / "configs" / "forecast.yaml").write_text(_SMALL_FORECAST_YAML, encoding="utf-8")
+    assert main(["--root", root, "init-db"]) == 0
+    assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
+    assert main(["--root", root, "recommend", "--lead-time-days", "1000"]) == 1
 
 
 def test_ingest_with_missing_raw_dir_fails(tmp_project, reset_logging):

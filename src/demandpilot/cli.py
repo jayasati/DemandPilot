@@ -5,6 +5,7 @@ Commands:
     ingest-m5      Load the raw M5 CSVs, then validate the result.
     build-features Generate feature SQL from config and materialize a snapshot.
     train          Assemble a dataset, train quantile models, and backtest.
+    recommend      Build newsvendor order-quantity recommendations.
     validate       Re-run the data validation suite against the database.
 """
 
@@ -23,6 +24,7 @@ from demandpilot.exceptions import DemandPilotError
 from demandpilot.features import FeatureSnapshotBuilder
 from demandpilot.forecasting import ForecastingPipeline
 from demandpilot.logging_setup import setup_logging
+from demandpilot.optimization import RecommendationBuilder, persist_recommendations
 from demandpilot.sqlrender import SqlRenderer
 
 logger = logging.getLogger(__name__)
@@ -65,6 +67,22 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Feature snapshot version to train on (default: the most recently built one).",
+    )
+
+    recommend = subparsers.add_parser(
+        "recommend", help="Build newsvendor order-quantity recommendations from quantile forecasts."
+    )
+    recommend.add_argument(
+        "--snapshot-version",
+        type=int,
+        default=None,
+        help="Feature snapshot version to use (default: the most recently built one).",
+    )
+    recommend.add_argument(
+        "--lead-time-days",
+        type=int,
+        default=None,
+        help="Horizon to recommend for (default: simulation.yaml's lead_time_days).",
     )
 
     subparsers.add_parser("validate", help="Run the data validation suite.")
@@ -153,6 +171,37 @@ def _run_train(config: DemandPilotConfig, snapshot_version: int | None) -> int:
     return 0
 
 
+def _run_recommend(
+    config: DemandPilotConfig, snapshot_version: int | None, lead_time_days: int | None
+) -> int:
+    """Build and persist newsvendor order-quantity recommendations."""
+    db = Database(config.app.paths.duckdb_path)
+    snapshot_table = f"feature_store_v{snapshot_version}" if snapshot_version else None
+    lead_time = lead_time_days if lead_time_days is not None else config.simulation.lead_time_days
+    builder = RecommendationBuilder(config.app.paths.sql_dir)
+    with db.connect() as connection:
+        report = builder.build(
+            connection, config.features, config.forecast, config.costs, lead_time, snapshot_table
+        )
+        persist_recommendations(connection, report)
+    total_quantity = sum(r.order_quantity for r in report.recommendations)
+    total_safety_stock = sum(r.safety_stock for r in report.recommendations)
+    logger.info(
+        "Built %d recommendations as of %s (lead_time_days=%d, critical_fractile=%.3f) from %s",
+        len(report.recommendations),
+        report.recommendation_date,
+        report.lead_time_days,
+        config.costs.critical_fractile,
+        report.snapshot_table,
+    )
+    logger.info(
+        "Total recommended order quantity: %.1f units (safety stock: %.1f units)",
+        total_quantity,
+        total_safety_stock,
+    )
+    return 0
+
+
 def _run_validate(config: DemandPilotConfig) -> int:
     """Run validation checks and report the outcome."""
     report = DataValidator(Database(config.app.paths.duckdb_path)).run()
@@ -183,6 +232,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_build_features(config)
         if args.command == "train":
             return _run_train(config, args.snapshot_version)
+        if args.command == "recommend":
+            return _run_recommend(config, args.snapshot_version, args.lead_time_days)
         return _run_validate(config)
     except DemandPilotError as exc:
         # Logging may not be configured yet if config loading failed.
