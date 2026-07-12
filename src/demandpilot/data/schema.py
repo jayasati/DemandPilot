@@ -2,6 +2,13 @@
 
 The schema is defined by the ordered list of static SQL files below; applying
 them is idempotent (all DDL uses ``IF NOT EXISTS`` / ``CREATE OR REPLACE``).
+
+``rolling_features`` and ``feature_store`` are NOT part of this static schema:
+they are config-driven (ADR-010) and DuckDB binds views eagerly (a view
+referencing a not-yet-existing view fails at CREATE time), so they must be
+created together, after config is available. See
+``demandpilot.features.FeatureSnapshotBuilder`` / the ``build-features`` CLI
+command.
 """
 
 import logging
@@ -15,8 +22,7 @@ logger = logging.getLogger(__name__)
 # Order matters: views depend on the base tables.
 SCHEMA_FILES: tuple[str, ...] = (
     "create_tables.sql",
-    "rolling_features.sql",
-    "feature_store.sql",
+    "feature_snapshots.sql",
     "views.sql",
 )
 

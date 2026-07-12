@@ -1,7 +1,7 @@
 # Feature engineering configuration for the forecasting pipeline.
 # This file is the single source of truth for the feature set (ADR-010): the
-# feature SQL is generated from it. sql/rolling_features.sql mirrors it by hand
-# until the generator lands in Volume 2.
+# rolling_features view SQL is generated from it by
+# demandpilot.features.FeatureSqlGenerator (`demandpilot build-features`).
 
 target: units_sold
 date_column: date

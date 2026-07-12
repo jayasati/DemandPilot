@@ -11,6 +11,7 @@ def test_full_pipeline(tmp_project, m5_fixture_dir, reset_logging):
     root = str(tmp_project)
     assert main(["--root", root, "init-db"]) == 0
     assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
     assert main(["--root", root, "validate"]) == 0
     assert (tmp_project / "data" / "demandpilot.duckdb").is_file()
     assert (tmp_project / "logs" / "demandpilot.log").is_file()

@@ -1,8 +1,14 @@
--- Feature store view: joins sales, dimensions, calendar, and rolling features
--- into the table consumed by the forecasting pipeline. Column set mirrors
--- configs/features.yaml (generated from it starting in Volume 2).
+-- Feature store view: joins sales, dimensions, calendar, and the generated
+-- rolling features (sql/rolling_features.sql.j2, ADR-010) into the model-ready
+-- table. rf.* is selected wildcard-style (DuckDB EXCLUDE) so this view stays
+-- valid whatever lag/window set configs/features.yaml specifies — no column
+-- list to keep in sync by hand.
 --
 -- snap_flag resolves the state-level SNAP indicator to the store's state.
+--
+-- Requires rolling_features to already exist (DuckDB binds views eagerly) —
+-- both are created together by demandpilot.features.FeatureSnapshotBuilder /
+-- `demandpilot build-features`, never by the static schema in create_tables.sql.
 
 CREATE OR REPLACE VIEW feature_store AS
 SELECT
@@ -29,22 +35,7 @@ SELECT
         ELSE FALSE
     END AS snap_flag,
 
-    rf.units_sold_lag_1,
-    rf.units_sold_lag_7,
-    rf.units_sold_lag_14,
-    rf.units_sold_lag_28,
-    rf.units_sold_roll_mean_7,
-    rf.units_sold_roll_std_7,
-    rf.units_sold_roll_min_7,
-    rf.units_sold_roll_max_7,
-    rf.units_sold_roll_mean_14,
-    rf.units_sold_roll_std_14,
-    rf.units_sold_roll_min_14,
-    rf.units_sold_roll_max_14,
-    rf.units_sold_roll_mean_28,
-    rf.units_sold_roll_std_28,
-    rf.units_sold_roll_min_28,
-    rf.units_sold_roll_max_28
+    rf.* EXCLUDE (store_id, sku_id, date)
 
 FROM sales s
 JOIN skus sk          ON sk.sku_id = s.sku_id

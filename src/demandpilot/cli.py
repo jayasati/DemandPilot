@@ -1,9 +1,10 @@
 """Command-line entry point (``demandpilot <command>``).
 
 Commands:
-    init-db    Create all tables and views in the DuckDB database.
-    ingest-m5  Load the raw M5 CSVs, then validate the result.
-    validate   Re-run the data validation suite against the database.
+    init-db        Create all tables and views in the DuckDB database.
+    ingest-m5      Load the raw M5 CSVs, then validate the result.
+    build-features Generate feature SQL from config and materialize a snapshot.
+    validate       Re-run the data validation suite against the database.
 """
 
 import argparse
@@ -16,6 +17,7 @@ from demandpilot import __version__
 from demandpilot.config import DemandPilotConfig, load_config
 from demandpilot.data import Database, DataValidator, M5Ingestor, apply_schema
 from demandpilot.exceptions import DemandPilotError
+from demandpilot.features import FeatureSnapshotBuilder
 from demandpilot.logging_setup import setup_logging
 from demandpilot.sqlrender import SqlRenderer
 
@@ -47,6 +49,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Directory with the M5 CSVs (default: paths.m5_raw_dir from app.yaml).",
     )
 
+    subparsers.add_parser(
+        "build-features", help="Generate feature SQL from config and materialize a snapshot."
+    )
+
     subparsers.add_parser("validate", help="Run the data validation suite.")
     return parser
 
@@ -66,6 +72,21 @@ def _run_ingest_m5(config: DemandPilotConfig, raw_dir: Path | None) -> int:
     ingestor = M5Ingestor(db, renderer, raw_dir or config.app.paths.m5_raw_dir)
     ingestor.ingest()
     DataValidator(db).run().raise_if_failed()
+    return 0
+
+
+def _run_build_features(config: DemandPilotConfig) -> int:
+    """Generate the feature views from config and materialize a new snapshot."""
+    db = Database(config.app.paths.duckdb_path)
+    builder = FeatureSnapshotBuilder(db, config.app.paths.sql_dir, config.root)
+    info = builder.build(config.features)
+    logger.info(
+        "Feature snapshot %s ready: %d rows [%s .. %s]",
+        info.table_name,
+        info.row_count,
+        info.min_date,
+        info.max_date,
+    )
     return 0
 
 
@@ -95,6 +116,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_init_db(config)
         if args.command == "ingest-m5":
             return _run_ingest_m5(config, args.raw_dir)
+        if args.command == "build-features":
+            return _run_build_features(config)
         return _run_validate(config)
     except DemandPilotError as exc:
         # Logging may not be configured yet if config loading failed.

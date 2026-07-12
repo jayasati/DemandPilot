@@ -34,3 +34,7 @@ class IngestionError(DataError):
 
 class DataValidationError(DataError):
     """Ingested data failed one or more validation checks."""
+
+
+class FeatureError(DemandPilotError):
+    """A feature-engineering step (SQL generation, snapshot build) failed."""

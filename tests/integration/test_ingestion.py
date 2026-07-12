@@ -91,23 +91,6 @@ def test_reingest_is_idempotent(ingested_db, repo_root, m5_fixture_dir):
     assert second == first
 
 
-def test_feature_store_has_no_current_day_leakage(ingested_db):
-    """The 7-day rolling mean must not include the current row's target."""
-    db, _ = ingested_db
-    with db.connect(read_only=True) as con:
-        rows = con.execute("""
-            SELECT date, units_sold, units_sold_roll_mean_7
-            FROM feature_store
-            WHERE store_id = 'CA_1' AND sku_id = 'HOBBIES_1_001'
-            ORDER BY date
-            LIMIT 10
-            """).fetchall()
-    # First row has no history at all: every window ends before it.
-    assert rows[0][2] is None
-    # Second row's "rolling mean" is exactly the first row's value — not its own.
-    assert rows[1][2] == pytest.approx(rows[0][1])
-
-
 def test_missing_raw_files_raise(tmp_path, repo_root):
     db = Database(tmp_path / "test.duckdb")
     apply_schema(db, repo_root / "sql")

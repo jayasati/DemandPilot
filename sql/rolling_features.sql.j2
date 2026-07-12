@@ -1,0 +1,12 @@
+-- GENERATED from configs/features.yaml by
+-- demandpilot.features.generator.FeatureSqlGenerator — do not hand-edit.
+-- Edit the config and regenerate with `demandpilot build-features`.
+--
+-- LEAKAGE RULE (ADR-008): every rolling window ends at 1 PRECEDING and every
+-- lag is >= 1 — enforced by the generator regardless of what the config says.
+
+CREATE OR REPLACE VIEW rolling_features AS
+SELECT
+{{ select_columns_sql }}
+FROM sales
+WINDOW w AS (PARTITION BY {{ group_columns_sql }} ORDER BY {{ date_column }});
