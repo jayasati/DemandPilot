@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: poetry
+
+      - name: Install dependencies
+        run: poetry install --with dev --no-interaction
+
+      - name: Format check (Black)
+        run: poetry run black --check src tests scripts
+
+      - name: Lint (Ruff)
+        run: poetry run ruff check src tests scripts
+
+      - name: Type check (MyPy, strict)
+        run: poetry run mypy
+
+      - name: Tests with coverage gate
+        run: poetry run pytest --cov --cov-report=term-missing

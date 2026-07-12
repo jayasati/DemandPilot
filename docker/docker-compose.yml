@@ -1,0 +1,25 @@
+# Local orchestration: the DemandPilot CLI/app plus an MLflow tracking server.
+# Run from the repository root:  docker compose -f docker/docker-compose.yml up
+
+services:
+  demandpilot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+      - ../reports:/app/reports
+    environment:
+      - DEMANDPILOT_ROOT=/app
+    # Placeholder command until the Streamlit dashboard lands (Volume 7);
+    # override with e.g.: docker compose run demandpilot ingest-m5
+    command: ["--help"]
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlruns
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../mlruns:/mlruns
