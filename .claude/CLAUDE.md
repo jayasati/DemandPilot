@@ -10,9 +10,9 @@ newsvendor inventory optimization, historical policy simulation, generated
 executive reports, and a Streamlit dashboard. DuckDB is the analytical store;
 all configuration is validated Pydantic models loaded from `configs/`.
 
-Work proceeds in volumes (see `docs/ROADMAP.md`). Volumes 0–3 are complete
-(foundation, data layer, feature engineering, quantile forecasting); Volume 4
-(newsvendor optimization) is next.
+Work proceeds in volumes (see `docs/ROADMAP.md`). Volumes 0–4 are complete
+(foundation, data layer, feature engineering, quantile forecasting, newsvendor
+optimization); Volume 5 (historical policy simulation) is next.
 
 ## Structure
 
@@ -21,7 +21,7 @@ Work proceeds in volumes (see `docs/ROADMAP.md`). Volumes 0–3 are complete
 - `docs/` — architecture, strategies, ADRs (`docs/adr/`), roadmap
 - `sql/` — ALL SQL: DDL, views, Jinja2 templates (`.sql.j2`); never inline SQL in Python
 - `src/demandpilot/` — layered package: `core/` (pure math) → `config/` → `data/` →
-  `features/` → `forecasting/` → `cli.py`
+  `features/` → `forecasting/` → `optimization/` → `cli.py`
 - `tests/` — unit + integration; deterministic M5-format fixtures in `conftest.py`
 - `scripts/` — operational scripts (M5 download)
 - `docker/`, `.github/` — container + CI definitions

@@ -33,18 +33,24 @@ Kaggle M5 CSVs (scripts/download_m5.py)
                              ▼
               P10/P50/P90 + fractile forecasts per (store, sku, date)
                              │
+                             ▼
+              [V4] recommend: retrain at the median + critical fractile on
+                   the most recent origin with a known outcome (ADR-016);
+                   Q* = the critical-fractile forecast; safety stock = Q* -
+                   median; -> recommendations table (with actual_demand)
+                             │
               ┌──────────────┼────────────────┐
               ▼              ▼                ▼
-   [V4] newsvendor     [V5] policy      [V3] backtest report
-   order quantities    simulation        (pinball, coverage,
-   + cost rationale    (historical        WAPE, bias, RMSE)
-              │         replay, P&L)          │
-              └──────────────┼────────────────┘
-                             ▼
-        [V6] Jinja2 executive reports   [V7] Streamlit dashboard
+   [V5] policy          [V3] backtest    [V6] Jinja2
+   simulation             report          executive reports
+   (historical replay,  (pinball,              │
+   P&L, extends V4)      coverage,              ▼
+              │           WAPE, bias,      [V7] Streamlit
+              │           RMSE)             dashboard
+              └──────────────┴────────────────┘
 ```
 
-## Current command sequence (Volumes 0–3)
+## Current command sequence (Volumes 0–4)
 
 1. `demandpilot init-db` — applies `sql/create_tables.sql`,
    `sql/feature_snapshots.sql`, and `sql/views.sql`.
@@ -58,7 +64,13 @@ Kaggle M5 CSVs (scripts/download_m5.py)
    dataset from a snapshot (latest by default), splits chronologically,
    trains one LightGBM quantile model per quantile ∪ critical fractile,
    backtests on the held-out test set, and logs everything to MLflow.
-5. `demandpilot validate` — re-runs the validation suite on demand.
+5. `demandpilot recommend [--snapshot-version N] [--lead-time-days N]` —
+   assembles a single-horizon dataset, trains median + critical-fractile
+   models on everything before the most recent origin, predicts for that
+   origin, and persists order-quantity recommendations (with realized
+   `actual_demand`, since this is retrospective — ADR-016) to the
+   `recommendations` table.
+6. `demandpilot validate` — re-runs the validation suite on demand.
 
 Every step logs to console and `logs/demandpilot.log`, reads all settings from
 `configs/`, and is idempotent (re-running ingestion replaces the data).

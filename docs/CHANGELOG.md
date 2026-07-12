@@ -7,6 +7,31 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Volume 4 (optimization), 2026-07-12
+
+- `demandpilot.core.newsvendor.safety_stock`: order quantity's distance from
+  the median forecast (positive or negative — both are valid outcomes of the
+  newsvendor economics).
+- `demandpilot.optimization.RecommendationBuilder`: reuses Volume 3's
+  `HorizonDatasetAssembler`/`QuantileForecaster` to produce order-quantity
+  recommendations — the critical-fractile quantile forecast itself is `Q*`,
+  needing no further numerical optimization. Computed retrospectively at the
+  most recent origin date with a known outcome (ADR-016), so every
+  recommendation also carries the realized `actual_demand`.
+- `demandpilot.optimization.persist_recommendations`: materializes a report
+  into a `recommendations` table (schema inferred from the report, always
+  replaced wholesale — a live operational output, not a versioned artifact
+  like feature snapshots).
+- CLI: `demandpilot recommend [--snapshot-version N] [--lead-time-days N]`
+  (defaults to `configs/simulation.yaml`'s `lead_time_days`).
+- New exception `OptimizationError`.
+- Refactor: `latest_snapshot_table` moved from a private helper in
+  `forecasting.pipeline` to a shared, public function in
+  `features.snapshots` — both the forecasting and optimization layers resolve
+  "the current snapshot" the same way.
+- New ADR: 016 (recommendations computed retrospectively, not into
+  unobserved future dates — a deliberate scope boundary explained in full).
+
 ### Added — Volume 3 (forecasting), 2026-07-12
 
 - `demandpilot.forecasting.HorizonDatasetAssembler` / `assemble_multi_horizon`:

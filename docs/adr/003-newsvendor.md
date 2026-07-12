@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; implemented in Volume 4.
 
 ## Context
 
@@ -18,10 +18,13 @@ the forecast→decision link the platform exists to demonstrate.
 ## Decision
 
 The newsvendor model translates probabilistic forecasts into order quantities.
-`Q*` is read directly from the forecast quantile at the critical fractile
-implied by `configs/costs.yaml` (ADR-012). Implementation: pure math in
-`demandpilot.core.newsvendor` (critical fractile landed in Volume 0; the full
-policy lands in Volume 4).
+`Q*` is read directly from the critical-fractile quantile model's prediction
+— no further numerical optimization is needed once that quantile is
+forecast (`demandpilot.optimization.RecommendationBuilder`, reusing Volume 3's
+`QuantileForecaster`). `core.newsvendor.critical_fractile` (Volume 0) computes
+the fractile; `core.newsvendor.safety_stock` (Volume 4) reports the order
+quantity's distance from the median forecast for context. See ADR-016 for the
+retrospective-recommendation scope decision.
 
 ## Consequences
 
@@ -31,3 +34,6 @@ policy lands in Volume 4).
   the first cut; (s,S)/multi-echelon are future extensions
   (docs/KNOWN_LIMITATIONS.md). The simulation engine (Volume 5) quantifies how
   much this simplification costs.
+- Recommendations are computed retrospectively (ADR-016), not into
+  genuinely unobserved future dates — a deliberate, documented scope
+  boundary, not an oversight.

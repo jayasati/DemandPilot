@@ -92,3 +92,24 @@ view into a versioned table and records its lineage:
 Full materialization of `feature_store` at build time — one per call to
 `build-features`. Volume 3 trains only against a named snapshot, never the
 live view, so training data is always reproducible.
+
+## Recommendations (Volume 4)
+
+### `recommendations`
+Written by `demandpilot recommend` (`demandpilot.optimization.
+persist_recommendations`); **always fully replaced**, not versioned like
+feature snapshots — a live operational output refreshed on each run, not a
+training artifact needing historical reproducibility (ADR-016). Schema is
+inferred from `Recommendation`'s fields, not hand-declared, so it can't drift:
+
+| column | notes |
+|---|---|
+| store_id, sku_id | series key |
+| origin_date, target_date | `target_date = origin_date + lead_time_days` |
+| lead_time_days | horizon recommended for |
+| order_quantity | `Q*` — the critical-fractile demand forecast |
+| median_forecast | P50 forecast, for context |
+| safety_stock | `order_quantity - median_forecast` (can be negative) |
+| critical_fractile, understock_cost_ratio, overstock_cost_ratio | cost rationale (ADR-012) |
+| actual_demand | realized outcome at `target_date` — recommendations are retrospective (ADR-016) |
+| snapshot_table | which `feature_store_v{N}` this run used |

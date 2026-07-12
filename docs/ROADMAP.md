@@ -27,18 +27,22 @@ explicit exit criterion. No stage may be skipped.
   metrics end-to-end. Not yet run against the real M5 dataset (not
   downloaded on this machine) — that remains a manual step for the user
   (docs/ENVIRONMENT_SETUP.md).*
+- **Volume 4 — Optimization** ✅ (2026-07-12): `RecommendationBuilder` reuses
+  Volume 3's assembly/training machinery to produce newsvendor order
+  quantities (the critical-fractile forecast itself, ADR-012) with explicit
+  cost rationale and safety-stock context, computed retrospectively at the
+  most recent origin date with a known outcome (ADR-016); persisted to a
+  `recommendations` table; `demandpilot recommend` CLI command.
+  *Exit criterion met: recommendations per store/SKU reproducible from one
+  command, on the test fixture — same real-vs-fixture-scale caveat as
+  Volume 3.*
 
 ## Now
 
-- **Volume 4 — Optimization**: newsvendor order quantities with cost rationale,
-  built on Volume 3's quantile forecasts and the cost-implied critical
-  fractile (ADR-012). *Exit: recommendations per store/SKU reproducible from
-  one command.*
-
-## Next
-
 - **Volume 5 — Simulation**: vectorized historical replay; baseline vs.
-  optimized policy P&L. *Exit: policy comparison with cost breakdown.*
+  optimized policy P&L, extending Volume 4's single-point recommendations
+  into a multi-period comparison. *Exit: policy comparison with cost
+  breakdown.*
 
 ## Later
 

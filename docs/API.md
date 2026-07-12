@@ -15,6 +15,7 @@ or the current directory), `--version`.
 | `ingest-m5 [--raw-dir PATH]` | Ingest the M5 CSVs, then run the validation suite | 1 if ingest **or validation** fails |
 | `build-features` | Generate `rolling_features`/`feature_store` from config and materialize a new `feature_store_v{N}` snapshot | 0 / 1 on error |
 | `train [--snapshot-version N]` | Assemble a multi-horizon dataset from a feature snapshot (latest by default), chronologically split, train quantile models, backtest, log to MLflow | 0 / 1 on error |
+| `recommend [--snapshot-version N] [--lead-time-days N]` | Build newsvendor order-quantity recommendations (retrospective — ADR-016) and persist them to the `recommendations` table | 0 / 1 on error |
 | `validate` | Re-run the 13-check validation suite | 1 on any failing check |
 
 All commands read configuration exclusively from `<root>/configs/` and log to
@@ -34,7 +35,9 @@ Stable, typed, documented interfaces intended for reuse (e.g. notebooks):
 - `demandpilot.forecasting.assemble_multi_horizon(connection, assembler, features_config, snapshot_table, horizon_days, origin_stride_days) -> pl.DataFrame`.
 - `demandpilot.forecasting.chronological_split(dataset, train_config) -> DatasetSplit`.
 - `demandpilot.forecasting.ForecastingPipeline(sql_dir).run(connection, features_config, forecast_config, costs_config, snapshot_table=None) -> BacktestReport`.
-- `demandpilot.core.newsvendor.critical_fractile(cu, co) -> float`.
+- `demandpilot.optimization.RecommendationBuilder(sql_dir).build(connection, features_config, forecast_config, costs_config, lead_time_days, snapshot_table=None) -> RecommendationReport`.
+- `demandpilot.optimization.persist_recommendations(connection, report) -> None`.
+- `demandpilot.core.newsvendor.critical_fractile(cu, co) -> float`; `safety_stock(order_quantity, median_demand) -> float`.
 - `demandpilot.core.metrics`: `pinball_loss`, `coverage`, `wape`, `bias`, `rmse`, `enforce_monotonic_quantiles`.
 - `demandpilot.sqlrender.SqlRenderer(sql_dir).render(name, **params) -> str`.
 

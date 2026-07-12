@@ -33,8 +33,15 @@ Honest list of what DemandPilot currently does **not** do, and why.
 - **Intermittent demand**: plain quantile LightGBM may collapse low quantiles
   to zero for slow movers (risk R5) — not yet evaluated against real M5 data.
 - **Single-period newsvendor**: no multi-period carryover, lead-time demand
-  aggregation, or capacity constraints in the first optimization cut
-  (Volume 4).
+  aggregation, or capacity constraints in the first optimization cut.
+- **Recommendations are retrospective, not live forecasts** (ADR-016):
+  `demandpilot recommend` computes order quantities "as of" the most recent
+  origin date for which a lead-time-ahead outcome already exists in the
+  snapshot — it cannot yet forecast into genuinely unobserved future dates.
+  That requires extending calendar (easy — pure date math) and price (harder
+  — needs a real forward schedule or a carry-forward assumption) beyond the
+  ingested history; a natural fit for a future serving layer alongside the
+  already-listed FastAPI extension, not built here.
 
 ## Engineering
 
