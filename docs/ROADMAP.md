@@ -45,15 +45,22 @@ explicit exit criterion. No stage may be skipped.
   *Exit criterion met: policy comparison with a cost breakdown (understock
   vs. overstock, per policy) reproducible from one command, on the test
   fixture — same real-vs-fixture-scale caveat as Volumes 3–4.*
+- **Volume 6 — Reporting** ✅ (2026-07-12): `ReportBuilder` gathers feature
+  snapshot lineage, the latest MLflow backtest run, and the
+  `recommendations`/`simulation_results` tables (each optional — every
+  section degrades gracefully to a "run `demandpilot X`" prompt if its
+  upstream command hasn't run yet) into a self-contained, dark-mode-aware
+  executive HTML report; `demandpilot report` CLI command.
+  *Exit criterion met: rendered end-to-end on the test fixture (verified by
+  reading the actual output, not just asserting on substrings) with and
+  without upstream data present.*
 
 ## Now
 
-- **Volume 6 — Reporting**: Jinja2 executive reports (HTML) over the
-  `recommendations` and `simulation_results` tables.
+- **Volume 7 — Dashboard**: Streamlit app over read-only DuckDB connections.
 
 ## Later
 
-- **Volume 7 — Dashboard**: Streamlit app over read-only DuckDB connections.
 - **Volume 8 — Hardening**: end-to-end Docker run, performance passes,
   documentation audit, KNOWN_LIMITATIONS review.
 

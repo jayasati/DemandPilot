@@ -42,17 +42,23 @@ Kaggle M5 CSVs (scripts/download_m5.py)
                              │
               ┌──────────────┼──────────────────────┐
               ▼              ▼                       ▼
-   [V5] simulate: replay  [V3] backtest report   [V6] Jinja2
-   ML quantile vs.        (pinball, coverage,     executive reports
-   classical baseline     WAPE, bias, RMSE)              │
-   (empirical/normal/                                    ▼
-   Poisson — ADR-017);                              [V7] Streamlit
-   real-currency cost                                dashboard
-   breakdown ->
-   simulation_results
+   [V5] simulate: replay  [V3] backtest report   [V6] report: gathers
+   ML quantile vs.        (pinball, coverage,     snapshot lineage +
+   classical baseline     WAPE, bias, RMSE)        latest MLflow run +
+   (empirical/normal/            │                 recommendations +
+   Poisson — ADR-017);           │                 simulation_results
+   real-currency cost            │                 (each optional,
+   breakdown ->                  │                 graceful if absent
+   simulation_results             │                 — ADR-018) into a
+              └──────────────────┴─────────────────► static executive
+                                                      HTML report
+                                                            │
+                                                            ▼
+                                                      [V7] Streamlit
+                                                       dashboard
 ```
 
-## Current command sequence (Volumes 0–5)
+## Current command sequence (Volumes 0–6)
 
 1. `demandpilot init-db` — applies `sql/create_tables.sql`,
    `sql/feature_snapshots.sql`, and `sql/views.sql`.
@@ -78,7 +84,12 @@ Kaggle M5 CSVs (scripts/download_m5.py)
    baseline per series from the same pre-test data, replays both policies
    over the review-period-filtered test origins, and persists the cost
    comparison (ADR-017) to the `simulation_results` table.
-7. `demandpilot validate` — re-runs the validation suite on demand.
+7. `demandpilot report [--snapshot-version N] [--output PATH]` — gathers
+   snapshot lineage, the latest MLflow run, and the `recommendations`/
+   `simulation_results` tables (each optional — a report can be built at any
+   point in the pipeline's lifecycle, ADR-018) into a static HTML file
+   (default `reports/executive_report.html`).
+8. `demandpilot validate` — re-runs the validation suite on demand.
 
 Every step logs to console and `logs/demandpilot.log`, reads all settings from
 `configs/`, and is idempotent (re-running ingestion replaces the data).

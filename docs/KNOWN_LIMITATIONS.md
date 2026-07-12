@@ -52,6 +52,17 @@ Honest list of what DemandPilot currently does **not** do, and why.
   ingested history; a natural fit for a future serving layer alongside the
   already-listed FastAPI extension, not built here.
 
+## Reporting
+
+- **Static, not interactive**: the executive report (Volume 6) is a
+  point-in-time HTML file — no sensitivity analysis (varying cost ratios to
+  see the effect), no drill-down, no live refresh. That belongs to the
+  Streamlit dashboard (Volume 7), which can hold state and re-query on
+  demand; the report exists for the "email it to a stakeholder" case.
+- **"Largest misses" is capped at 20 rows** (`sql/report_recommendations_top_misses.sql`):
+  a deliberate, labeled cap for readability, not a limit on what's queryable
+  — the full `recommendations` table has every row.
+
 ## Engineering
 
 - **Single-node by design**: DuckDB + one machine. Fine for M5 (~59M rows);

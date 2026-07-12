@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted; both uses implemented (SQL templating in Volumes 1-2, HTML reports
+in Volume 6 — see ADR-018 for the report-specific design decisions).
 
 ## Context
 

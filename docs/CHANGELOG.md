@@ -7,6 +7,33 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Volume 6 (reporting), 2026-07-12
+
+- `demandpilot.mlflow_utils`: shared `resolve_mlflow_tracking_uri` (moved
+  from `cli.py`) and new `latest_run(tracking_uri, experiment_name)` —
+  read-only MLflow lookup via `MlflowClient(tracking_uri=...)`, verified
+  against the installed MLflow version before writing code against it.
+- `demandpilot.reporting.data`: gathers feature-snapshot lineage, the
+  latest MLflow backtest run, and `recommendations`/`simulation_results`
+  summaries — each optional, since a report can be built before any of
+  `train`/`recommend`/`simulate` has ever run (checked via
+  `information_schema.tables`, not assumed).
+- `demandpilot.reporting.ReportBuilder`: renders a self-contained,
+  dark-mode-aware executive HTML report (stat tiles + detail tables +
+  cost-assumptions section), using the project's data-viz skill
+  conventions (status-colored delta on the ML-savings tile, capped and
+  labeled "largest misses" detail, no charts — this is a static summary).
+- Report SQL: `sql/report_recommendations_summary.sql`,
+  `sql/report_recommendations_top_misses.sql` (top 20 by absolute forecast
+  error, count stated separately — never a silent cap),
+  `sql/report_simulation_summary.sql`. Templates ship as package data under
+  `demandpilot/reporting/templates/`, per the `.gitignore` note from
+  Volume 0 that templates are code, not generated output.
+- CLI: `demandpilot report [--snapshot-version N] [--output PATH]`.
+- New exception `ReportingError`.
+- New ADR: 018 (executive report design — templates-as-package-data,
+  graceful-empty sections, read-only MLflow access).
+
 ### Added — Volume 5 (simulation), 2026-07-12
 
 - `demandpilot.core.demand_distribution`: pure quantile estimators
