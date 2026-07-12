@@ -25,6 +25,11 @@ train:
   test_size_days: 28
   validation_size_days: 28
   cv_folds: 3
+  # Multi-horizon training stacks horizons 1..horizon_days for every sampled
+  # origin date (ADR-015); this subsamples origins to 1-in-N calendar days
+  # (epoch-aligned, so every horizon draws from the same dates) to keep the
+  # assembled dataset tractable at M5 scale. 1 = use every origin date.
+  origin_stride_days: 7
 
 model:
   type: lightgbm

@@ -162,6 +162,7 @@ class TrainConfig(_FrozenModel):
     test_size_days: int = Field(ge=1)
     validation_size_days: int = Field(ge=1)
     cv_folds: int = Field(ge=1)
+    origin_stride_days: int = Field(ge=1)
 
 
 class ModelConfig(_FrozenModel):

@@ -21,7 +21,10 @@ paths:
   duckdb_path: data/demandpilot.duckdb
 
 mlflow:
-  tracking_uri: file:./mlruns
+  # MLflow >=3 deprecated the plain filesystem tracking backend ("maintenance
+  # mode": it now raises unless MLFLOW_ALLOW_FILE_STORE=true is set) — a local
+  # SQLite database is the zero-ops equivalent that isn't deprecated (ADR-006).
+  tracking_uri: sqlite:///mlruns/mlflow.db
   experiment_name: demandpilot
 
 streamlit:

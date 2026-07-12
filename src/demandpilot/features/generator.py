@@ -8,6 +8,7 @@ regardless of config, structurally enforcing the ADR-008 leakage rule.
 """
 
 from demandpilot.config.models import FeaturesConfig
+from demandpilot.features.naming import lag_column_name, rolling_column_name
 from demandpilot.sqlrender import SqlRenderer
 
 _AGGREGATION_SQL: dict[str, str] = {
@@ -48,13 +49,14 @@ class FeatureSqlGenerator:
 
         lag_column = config.lag_features.column
         for lag in config.lag_features.lags:
-            select_columns.append(f"    LAG({lag_column}, {lag}) OVER w AS {lag_column}_lag_{lag}")
+            alias = lag_column_name(lag_column, lag)
+            select_columns.append(f"    LAG({lag_column}, {lag}) OVER w AS {alias}")
 
         roll_column = config.rolling_features.column
         for window in config.rolling_features.windows:
             for aggregation in config.rolling_features.aggregations:
                 agg_sql = _AGGREGATION_SQL[aggregation]
-                alias = f"{roll_column}_roll_{aggregation}_{window}"
+                alias = rolling_column_name(roll_column, aggregation, window)
                 select_columns.append(
                     f"    {agg_sql}({roll_column}) "
                     f"OVER (w ROWS BETWEEN {window} PRECEDING AND 1 PRECEDING) AS {alias}"

@@ -93,7 +93,7 @@ warn_unreachable = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["duckdb.*", "lightgbm.*", "mlflow.*", "plotly.*", "scipy.*"]
+module = ["duckdb.*", "lightgbm.*", "mlflow.*", "pandas.*", "plotly.*", "scipy.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------

@@ -38,3 +38,7 @@ class DataValidationError(DataError):
 
 class FeatureError(DemandPilotError):
     """A feature-engineering step (SQL generation, snapshot build) failed."""
+
+
+class ForecastError(DemandPilotError):
+    """A forecasting step (dataset assembly, splitting, training) failed."""
