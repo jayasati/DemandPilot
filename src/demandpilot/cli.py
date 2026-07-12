@@ -7,6 +7,7 @@ Commands:
     train          Assemble a dataset, train quantile models, and backtest.
     recommend      Build newsvendor order-quantity recommendations.
     simulate       Replay the ML vs. classical policy over historical decisions.
+    report         Render the executive HTML report.
     validate       Re-run the data validation suite against the database.
 """
 
@@ -25,7 +26,9 @@ from demandpilot.exceptions import DemandPilotError
 from demandpilot.features import FeatureSnapshotBuilder
 from demandpilot.forecasting import ForecastingPipeline
 from demandpilot.logging_setup import setup_logging
+from demandpilot.mlflow_utils import resolve_mlflow_tracking_uri
 from demandpilot.optimization import RecommendationBuilder, persist_recommendations
+from demandpilot.reporting import ReportBuilder
 from demandpilot.simulation import SimulationEngine, persist_simulation_results
 from demandpilot.sqlrender import SqlRenderer
 
@@ -97,6 +100,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Feature snapshot version to use (default: the most recently built one).",
     )
 
+    report = subparsers.add_parser(
+        "report", help="Render the executive HTML report from data Volumes 1-5 have produced."
+    )
+    report.add_argument(
+        "--snapshot-version",
+        type=int,
+        default=None,
+        help="Feature snapshot to report lineage for (default: the most recently built one).",
+    )
+    report.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output HTML path (default: paths.reports_dir/executive_report.html from app.yaml).",
+    )
+
     subparsers.add_parser("validate", help="Run the data validation suite.")
     return parser
 
@@ -134,29 +153,11 @@ def _run_build_features(config: DemandPilotConfig) -> int:
     return 0
 
 
-def _resolve_mlflow_tracking_uri(tracking_uri: str, root: Path) -> str:
-    """Resolve a relative ``sqlite:///``/``file:`` tracking URI against the project root.
-
-    ``configs/app.yaml`` declares ``mlflow.tracking_uri`` as a plain string
-    (unlike ``paths.*``, it isn't run through ``PathsConfig.resolve_against``)
-    so a relative path would otherwise land relative to the process's current
-    working directory rather than ``--root`` — breaking the "no hardcoded
-    paths" principle. Absolute URIs and other schemes pass through unchanged.
-    """
-    for prefix in ("sqlite:///", "file:"):
-        if tracking_uri.startswith(prefix):
-            raw_path = Path(tracking_uri[len(prefix) :])
-            if raw_path.is_absolute():
-                return tracking_uri
-            return prefix + (root / raw_path).resolve().as_posix()
-    return tracking_uri
-
-
 def _run_train(config: DemandPilotConfig, snapshot_version: int | None) -> int:
     """Assemble a horizon-aware dataset, train quantile models, and backtest."""
     db = Database(config.app.paths.duckdb_path)
     mlflow.set_tracking_uri(
-        _resolve_mlflow_tracking_uri(config.app.mlflow.tracking_uri, config.root)
+        resolve_mlflow_tracking_uri(config.app.mlflow.tracking_uri, config.root)
     )
     snapshot_table = f"feature_store_v{snapshot_version}" if snapshot_version else None
     pipeline = ForecastingPipeline(config.app.paths.sql_dir)
@@ -248,6 +249,23 @@ def _run_simulate(config: DemandPilotConfig, snapshot_version: int | None) -> in
     return 0
 
 
+def _run_report(
+    config: DemandPilotConfig, snapshot_version: int | None, output: Path | None
+) -> int:
+    """Render the executive HTML report."""
+    db = Database(config.app.paths.duckdb_path)
+    snapshot_table = f"feature_store_v{snapshot_version}" if snapshot_version else None
+    output_path = output or (config.app.paths.reports_dir / "executive_report.html")
+    tracking_uri = resolve_mlflow_tracking_uri(config.app.mlflow.tracking_uri, config.root)
+    builder = ReportBuilder(config.app.paths.sql_dir)
+    with db.connect(read_only=True) as connection:
+        builder.build(
+            connection, config.forecast, config.costs, tracking_uri, output_path, snapshot_table
+        )
+    logger.info("Executive report written to %s", output_path)
+    return 0
+
+
 def _run_validate(config: DemandPilotConfig) -> int:
     """Run validation checks and report the outcome."""
     report = DataValidator(Database(config.app.paths.duckdb_path)).run()
@@ -282,6 +300,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_recommend(config, args.snapshot_version, args.lead_time_days)
         if args.command == "simulate":
             return _run_simulate(config, args.snapshot_version)
+        if args.command == "report":
+            return _run_report(config, args.snapshot_version, args.output)
         return _run_validate(config)
     except DemandPilotError as exc:
         # Logging may not be configured yet if config loading failed.

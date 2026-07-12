@@ -1,5 +1,5 @@
 """End-to-end CLI tests: init-db -> ingest-m5 -> build-features -> train ->
-recommend -> simulate -> validate."""
+recommend -> simulate -> report -> validate."""
 
 import pytest
 
@@ -126,6 +126,33 @@ def test_simulate_fails_cleanly_when_lead_time_exceeds_data_range(
     assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
     assert main(["--root", root, "build-features"]) == 0
     assert main(["--root", root, "simulate"]) == 1
+
+
+def test_report_renders_before_any_downstream_command(tmp_project, m5_fixture_dir, reset_logging):
+    root = str(tmp_project)
+    assert main(["--root", root, "init-db"]) == 0
+    assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
+    assert main(["--root", root, "report"]) == 0
+    output = tmp_project / "reports" / "executive_report.html"
+    assert output.is_file()
+    assert "DemandPilot Executive Report" in output.read_text(encoding="utf-8")
+
+
+def test_report_full_pipeline_with_custom_output_path(tmp_project, m5_fixture_dir, reset_logging):
+    root = str(tmp_project)
+    (tmp_project / "configs" / "forecast.yaml").write_text(_SMALL_FORECAST_YAML, encoding="utf-8")
+    assert main(["--root", root, "init-db"]) == 0
+    assert main(["--root", root, "ingest-m5", "--raw-dir", str(m5_fixture_dir)]) == 0
+    assert main(["--root", root, "build-features"]) == 0
+    assert main(["--root", root, "train"]) == 0
+    assert main(["--root", root, "recommend", "--lead-time-days", "3"]) == 0
+    assert main(["--root", root, "simulate"]) == 0
+    custom_output = tmp_project / "custom" / "report.html"
+    assert main(["--root", root, "report", "--output", str(custom_output)]) == 0
+    html = custom_output.read_text(encoding="utf-8")
+    assert "ml_quantile" in html
+    assert "classical_baseline" in html
 
 
 def test_ingest_with_missing_raw_dir_fails(tmp_project, reset_logging):

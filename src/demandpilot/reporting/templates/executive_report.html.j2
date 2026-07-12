@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DemandPilot Executive Report</title>
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --page-plane:      #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --hairline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --good:           #0ca30c;
+    --critical:       #d03b3b;
+    --blue:           #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1:      #1a1a19;
+      --page-plane:      #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --hairline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.10);
+      --good:           #0ca30c;
+      --critical:       #d03b3b;
+      --blue:           #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header.report-header { margin-bottom: 32px; }
+  header.report-header h1 { font-size: 28px; margin: 0 0 4px; }
+  header.report-header .meta { color: var(--text-secondary); font-size: 14px; }
+  header.report-header .meta code {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 13px;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .stat-tile .label { color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
+  .stat-tile .value { font-size: 28px; font-weight: 600; }
+  .stat-tile .value.good { color: var(--good); }
+  .stat-tile .value.critical { color: var(--critical); }
+  .stat-tile .sub { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+
+  section.report-section {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  section.report-section h2 { font-size: 17px; margin: 0 0 4px; }
+  section.report-section .section-note { color: var(--text-muted); font-size: 13px; margin-bottom: 14px; }
+  .empty-note {
+    color: var(--text-muted); font-size: 14px; font-style: italic;
+    padding: 8px 0;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td {
+    text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--hairline);
+    font-variant-numeric: tabular-nums;
+  }
+  th:first-child, td:first-child, th.text, td.text { text-align: left; font-variant-numeric: normal; }
+  th { color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.02em; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  dl.assumptions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin: 0; }
+  dl.assumptions div { display: flex; justify-content: space-between; border-bottom: 1px solid var(--hairline); padding: 4px 0; }
+  dl.assumptions dt { color: var(--text-secondary); }
+  dl.assumptions dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  footer.report-footer {
+    color: var(--text-muted); font-size: 12px; margin-top: 32px;
+    border-top: 1px solid var(--hairline); padding-top: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="report-header">
+    <h1>DemandPilot Executive Report</h1>
+    <div class="meta">
+      Generated {{ report.generated_at.strftime("%Y-%m-%d %H:%M UTC") }}
+      {% if report.snapshot %}
+        &middot; snapshot <code>{{ report.snapshot.table_name }}</code>
+        ({{ report.snapshot.row_count | number }} rows,
+        {{ report.snapshot.min_date }} to {{ report.snapshot.max_date }})
+        {% if report.snapshot.git_commit %}
+          &middot; commit <code>{{ report.snapshot.git_commit[:8] }}</code>
+        {% endif %}
+      {% else %}
+        &middot; no feature snapshot found — run <code>demandpilot build-features</code>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="kpi-row">
+    <div class="stat-tile">
+      <div class="label">Recommended order quantity</div>
+      {% if report.recommendations %}
+        <div class="value">{{ report.recommendations.total_order_quantity | number }}</div>
+        <div class="sub">across {{ report.recommendations.n_recommendations }} series</div>
+      {% else %}
+        <div class="value">&mdash;</div>
+        <div class="sub">run <code>demandpilot recommend</code></div>
+      {% endif %}
+    </div>
+    <div class="stat-tile">
+      <div class="label">Safety stock</div>
+      {% if report.recommendations %}
+        <div class="value">{{ report.recommendations.total_safety_stock | number }}</div>
+        <div class="sub">critical fractile {{ report.recommendations.critical_fractile | pct }}</div>
+      {% else %}
+        <div class="value">&mdash;</div>
+        <div class="sub">run <code>demandpilot recommend</code></div>
+      {% endif %}
+    </div>
+    <div class="stat-tile">
+      <div class="label">ML policy savings vs. classical baseline</div>
+      {% if report.simulation and report.simulation.savings is not none %}
+        <div class="value {{ 'good' if report.simulation.savings >= 0 else 'critical' }}">
+          {{ report.simulation.savings | money(report.costs.currency) }}
+        </div>
+        <div class="sub">
+          {{ 'ML policy cost less' if report.simulation.savings >= 0 else 'ML policy cost more' }}
+        </div>
+      {% else %}
+        <div class="value">&mdash;</div>
+        <div class="sub">run <code>demandpilot simulate</code></div>
+      {% endif %}
+    </div>
+    <div class="stat-tile">
+      <div class="label">Forecast WAPE</div>
+      {% if report.forecast_accuracy and report.forecast_accuracy.wape is not none %}
+        <div class="value">{{ report.forecast_accuracy.wape | pct }}</div>
+        <div class="sub">lower is better</div>
+      {% else %}
+        <div class="value">&mdash;</div>
+        <div class="sub">run <code>demandpilot train</code></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="report-section">
+    <h2>Forecast accuracy</h2>
+    {% if report.forecast_accuracy %}
+      <div class="section-note">
+        Latest training run <code>{{ report.forecast_accuracy.run_id[:8] }}</code>,
+        {{ report.forecast_accuracy.trained_at.strftime("%Y-%m-%d %H:%M UTC") }}.
+        WAPE {{ report.forecast_accuracy.wape | pct if report.forecast_accuracy.wape is not none else "n/a" }}
+        &middot; bias {{ report.forecast_accuracy.bias | number if report.forecast_accuracy.bias is not none else "n/a" }}
+        &middot; RMSE {{ report.forecast_accuracy.rmse | number if report.forecast_accuracy.rmse is not none else "n/a" }}
+      </div>
+      {% if report.forecast_accuracy.quantile_metrics %}
+      <table>
+        <thead><tr><th class="text">Quantile</th><th>Pinball loss</th><th>Coverage</th></tr></thead>
+        <tbody>
+          {% for qm in report.forecast_accuracy.quantile_metrics %}
+          <tr>
+            <td class="text">P{{ (qm.quantile * 100) | round | int }}</td>
+            <td>{{ qm.pinball | number(3) }}</td>
+            <td>{{ qm.coverage | pct }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    {% else %}
+      <p class="empty-note">No training run found. Run <code>demandpilot train</code> to populate this section.</p>
+    {% endif %}
+  </section>
+
+  <section class="report-section">
+    <h2>Inventory recommendations</h2>
+    {% if report.recommendations %}
+      <div class="section-note">
+        As of {{ report.recommendations.recommendation_date }},
+        lead time {{ report.recommendations.lead_time_days }} days
+        &middot; snapshot <code>{{ report.recommendations.snapshot_table }}</code>
+        &middot; showing the {{ report.recommendations.top_misses | length }} largest
+        forecast misses of {{ report.recommendations.n_recommendations }} total recommendations.
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="text">Store</th><th class="text">SKU</th>
+            <th>Order qty</th><th>Median</th><th>Safety stock</th>
+            <th>Actual demand</th><th>Absolute miss</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in report.recommendations.top_misses %}
+          <tr>
+            <td class="text">{{ r.store_id }}</td>
+            <td class="text">{{ r.sku_id }}</td>
+            <td>{{ r.order_quantity | number }}</td>
+            <td>{{ r.median_forecast | number }}</td>
+            <td>{{ r.safety_stock | number }}</td>
+            <td>{{ r.actual_demand | number }}</td>
+            <td>{{ r.absolute_miss | number }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-note">No recommendations found. Run <code>demandpilot recommend</code> to populate this section.</p>
+    {% endif %}
+  </section>
+
+  <section class="report-section">
+    <h2>Policy simulation</h2>
+    {% if report.simulation %}
+      <div class="section-note">
+        Historical replay comparing the ML quantile policy against a classical
+        statistical baseline on real, held-out outcomes.
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="text">Policy</th><th>Decisions</th><th>Total cost</th>
+            <th>Understock cost</th><th>Overstock cost</th><th>Mean cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in report.simulation.policies %}
+          <tr>
+            <td class="text">{{ p.policy }}</td>
+            <td>{{ p.n_decisions }}</td>
+            <td>{{ p.total_cost | money(report.costs.currency) }}</td>
+            <td>{{ p.total_understock_cost | money(report.costs.currency) }}</td>
+            <td>{{ p.total_overstock_cost | money(report.costs.currency) }}</td>
+            <td>{{ p.mean_cost | money(report.costs.currency) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-note">No simulation results found. Run <code>demandpilot simulate</code> to populate this section.</p>
+    {% endif %}
+  </section>
+
+  <section class="report-section">
+    <h2>Cost assumptions</h2>
+    <div class="section-note">Every recommendation and simulated decision above is priced from these ratios (of sell price), currency {{ report.costs.currency }}.</div>
+    <dl class="assumptions">
+      <div><dt>Unit cost ratio</dt><dd>{{ report.costs.unit_cost_ratio | pct }}</dd></div>
+      <div><dt>Salvage ratio</dt><dd>{{ report.costs.salvage_ratio | pct }}</dd></div>
+      <div><dt>Holding cost ratio</dt><dd>{{ report.costs.holding_cost_ratio | pct }}</dd></div>
+      <div><dt>Stockout penalty ratio</dt><dd>{{ report.costs.stockout_penalty_ratio | pct }}</dd></div>
+      <div><dt>Understock cost (Cu)</dt><dd>{{ report.costs.understock_cost_ratio | pct }}</dd></div>
+      <div><dt>Overstock cost (Co)</dt><dd>{{ report.costs.overstock_cost_ratio | pct }}</dd></div>
+      <div><dt>Critical fractile</dt><dd>{{ report.costs.critical_fractile | pct }}</dd></div>
+    </dl>
+  </section>
+
+  <footer class="report-footer">
+    Recommendations and simulation results are computed retrospectively against
+    known historical outcomes, not forecasts of unobserved future dates
+    (see ADR-016 and ADR-017). Simulation results replay independent
+    single-period decisions, not a stateful multi-period inventory system
+    (ADR-003).
+  </footer>
+
+</div>
+</body>
+</html>

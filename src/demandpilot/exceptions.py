@@ -50,3 +50,7 @@ class OptimizationError(DemandPilotError):
 
 class SimulationError(DemandPilotError):
     """A policy-replay simulation step (assembly, splitting, persistence) failed."""
+
+
+class ReportingError(DemandPilotError):
+    """A report-building step (data gathering, template rendering) failed."""
