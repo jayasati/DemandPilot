@@ -22,3 +22,4 @@ that implements them; superseded ADRs are marked, never deleted.
 | [014](014-future-known-vs-history-derived-features.md) | Direct multi-horizon assembly: future-known vs. history-derived features |
 | [015](015-horizon-as-feature-training.md) | Horizon-as-feature training with origin sampling |
 | [016](016-retrospective-recommendations.md) | Recommendations computed retrospectively, not into unobserved future dates |
+| [017](017-policy-replay-simulation.md) | Historical policy-replay simulation: ML quantile vs. classical baseline |

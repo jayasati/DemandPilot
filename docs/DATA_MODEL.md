@@ -57,8 +57,10 @@ Columns: `units_sold INTEGER`, `sell_price DOUBLE` (the week's price).
 - **SNAP stays state-level in `calendar`**: the feature layer resolves it to a
   per-store `snap_flag` (see `sql/feature_store.sql`) instead of denormalizing
   59M boolean values into the fact table.
-- **No inventory table yet**: M5 has no inventory positions; simulated
-  inventory state is produced (not stored) by the Volume 5 engine.
+- **No inventory table yet**: M5 has no inventory positions, and Volume 5's
+  simulation replays independent single-period decisions rather than
+  carrying inventory state across time (ADR-003, ADR-017), so no inventory
+  state is produced or stored.
 
 ## Views
 
@@ -112,4 +114,23 @@ inferred from `Recommendation`'s fields, not hand-declared, so it can't drift:
 | safety_stock | `order_quantity - median_forecast` (can be negative) |
 | critical_fractile, understock_cost_ratio, overstock_cost_ratio | cost rationale (ADR-012) |
 | actual_demand | realized outcome at `target_date` — recommendations are retrospective (ADR-016) |
+| snapshot_table | which `feature_store_v{N}` this run used |
+
+## Simulation results (Volume 5)
+
+### `simulation_results`
+Written by `demandpilot simulate` (`demandpilot.simulation.
+persist_simulation_results`); **always fully replaced**, like
+`recommendations` (ADR-017). Long format — two rows per (series, origin):
+one for each policy, so they can be joined/compared directly.
+
+| column | notes |
+|---|---|
+| policy | `ml_quantile` or `classical_baseline` |
+| store_id, sku_id | series key |
+| origin_date, target_date | `target_date = origin_date + lead_time_days` |
+| order_quantity | this policy's order quantity for this decision |
+| actual_demand, sell_price | realized outcome and price at `target_date` |
+| understock_cost, overstock_cost | real-currency cost components (ADR-012/017); exactly one is nonzero per row |
+| cost | `understock_cost + overstock_cost` |
 | snapshot_table | which `feature_store_v{N}` this run used |

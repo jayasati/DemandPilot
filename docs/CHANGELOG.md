@@ -7,6 +7,38 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Volume 5 (simulation), 2026-07-12
+
+- `demandpilot.core.demand_distribution`: pure quantile estimators
+  (`normal_quantile`, `poisson_quantile`, `empirical_bootstrap_quantile` —
+  Monte Carlo bootstrap of lead-time demand from single-day observations)
+  for the classical baseline policy.
+- `demandpilot.core.newsvendor.realized_cost_breakdown` /
+  `realized_cost`: the newsvendor cost function in real currency
+  (cost ratios × sell price), split into understock/overstock components.
+- `demandpilot.simulation.classical_order_up_to`: dispatches to the
+  distribution estimators based on `configs/simulation.yaml`'s
+  `demand_distribution`.
+- `demandpilot.simulation.SimulationEngine`: replays the ML quantile policy
+  against the classical baseline across many held-out historical decision
+  points (reusing Volume 3's chronological split and Volume 3/4's assembler
+  and forecaster), filtered to a `review_period_days` cadence, graded with
+  the same newsvendor cost function — ADR-017.
+- `demandpilot.simulation.persist_simulation_results`: materializes a
+  `simulation_results` table (schema inferred, replaced wholesale, like
+  `recommendations`).
+- CLI: `demandpilot simulate [--snapshot-version N]`.
+- New exception `SimulationError`.
+- New ADR: 017 (policy-replay simulation design).
+
+### Fixed
+
+- `SimulationConfig.lead_time_days` tightened from `>= 0` to `>= 1`: `0`
+  would self-join a row to itself in the horizon-based assembler (used by
+  both `RecommendationBuilder` and `SimulationEngine`), predicting a row
+  from its own future value — a latent leakage bug caught while designing
+  Volume 5, never previously exercised.
+
 ### Added — Volume 4 (optimization), 2026-07-12
 
 - `demandpilot.core.newsvendor.safety_stock`: order quantity's distance from

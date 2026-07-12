@@ -18,8 +18,9 @@ delivers results through generated executive reports and a Streamlit dashboard.
 | 2 | Feature engineering: config-generated SQL, versioned snapshots | ✅ done |
 | 3 | Forecasting: quantile LightGBM, backtesting, MLflow | ✅ done |
 | 4 | Optimization: newsvendor order quantities | ✅ done |
-| 5 | Simulation: historical policy replay | ⏳ next |
-| 6–8 | Reporting → dashboard → hardening | planned |
+| 5 | Simulation: historical policy replay | ✅ done |
+| 6 | Reporting: Jinja2 executive reports | ⏳ next |
+| 7–8 | Dashboard → hardening | planned |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -42,6 +43,7 @@ poetry run demandpilot ingest-m5         # ingests, then runs the validation sui
 poetry run demandpilot build-features    # generates feature SQL, materializes a snapshot
 poetry run demandpilot train             # trains quantile models, backtests, logs to MLflow
 poetry run demandpilot recommend         # builds newsvendor order-quantity recommendations
+poetry run demandpilot simulate          # replays ML vs. classical policy over history
 poetry run demandpilot validate
 ```
 

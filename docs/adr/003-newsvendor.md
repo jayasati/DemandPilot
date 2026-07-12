@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted; implemented in Volume 4.
+Accepted; implemented in Volume 4 (single-point recommendations) and Volume 5
+(historical replay quantifying the cost of the single-period simplification).
 
 ## Context
 
@@ -30,10 +31,11 @@ retrospective-recommendation scope decision.
 
 - Closed-form, explainable, and probabilistic by construction — it consumes
   the quantile forecasts natively; asymmetric costs are first-class.
-- Single-period assumption: no inventory carryover or lead-time aggregation in
-  the first cut; (s,S)/multi-echelon are future extensions
-  (docs/KNOWN_LIMITATIONS.md). The simulation engine (Volume 5) quantifies how
-  much this simplification costs.
+- Single-period assumption: no inventory carryover or lead-time aggregation;
+  (s,S)/multi-echelon are future extensions (docs/KNOWN_LIMITATIONS.md).
+  Volume 5's historical replay (ADR-017) quantifies how much this
+  simplification costs by comparing it against a classical baseline on real
+  outcomes, without building a full multi-period simulator.
 - Recommendations are computed retrospectively (ADR-016), not into
   genuinely unobserved future dates — a deliberate, documented scope
   boundary, not an oversight.

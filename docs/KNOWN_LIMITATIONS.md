@@ -4,8 +4,10 @@ Honest list of what DemandPilot currently does **not** do, and why.
 
 ## Data
 
-- **No inventory positions**: M5 contains no on-hand inventory, so replenishment
-  starts from simulated state (Volume 5), not observed positions.
+- **No inventory positions**: M5 contains no on-hand inventory. Volume 5's
+  simulation sidesteps this by replaying independent single-period decisions
+  against realized demand rather than modeling on-hand inventory state
+  (ADR-017) — it does not need or produce inventory positions.
 - **Pre-launch rows are dropped** (ADR-013): a SKU's history starts at its first
   priced week. Zero-demand days *after* launch are kept — but true
   out-of-stock days are indistinguishable from zero-demand days in M5, which
@@ -32,8 +34,15 @@ Honest list of what DemandPilot currently does **not** do, and why.
   training signal than a full-density dataset would provide.
 - **Intermittent demand**: plain quantile LightGBM may collapse low quantiles
   to zero for slow movers (risk R5) — not yet evaluated against real M5 data.
-- **Single-period newsvendor**: no multi-period carryover, lead-time demand
-  aggregation, or capacity constraints in the first optimization cut.
+- **Single-period newsvendor, replayed independently** (ADR-003, ADR-017):
+  Volume 5's simulation compares policies across many historical decision
+  points, but each decision is still evaluated independently — no inventory
+  carryover between periods, no capacity constraints, no accounting for
+  unsold stock reducing a later period's effective order quantity. This
+  quantifies "how good is each policy's single-period decision, repeated,"
+  not "how would a stateful multi-period inventory system have performed."
+  A true multi-period simulator (carrying on-hand/in-transit inventory) is a
+  substantial future extension, not a quick follow-up.
 - **Recommendations are retrospective, not live forecasts** (ADR-016):
   `demandpilot recommend` computes order quantities "as of" the most recent
   origin date for which a lead-time-ahead outcome already exists in the

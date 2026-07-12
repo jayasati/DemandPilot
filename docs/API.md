@@ -16,6 +16,7 @@ or the current directory), `--version`.
 | `build-features` | Generate `rolling_features`/`feature_store` from config and materialize a new `feature_store_v{N}` snapshot | 0 / 1 on error |
 | `train [--snapshot-version N]` | Assemble a multi-horizon dataset from a feature snapshot (latest by default), chronologically split, train quantile models, backtest, log to MLflow | 0 / 1 on error |
 | `recommend [--snapshot-version N] [--lead-time-days N]` | Build newsvendor order-quantity recommendations (retrospective — ADR-016) and persist them to the `recommendations` table | 0 / 1 on error |
+| `simulate [--snapshot-version N]` | Replay the ML quantile policy vs. the classical baseline over historical decisions (ADR-017) and persist to the `simulation_results` table | 0 / 1 on error |
 | `validate` | Re-run the 13-check validation suite | 1 on any failing check |
 
 All commands read configuration exclusively from `<root>/configs/` and log to
@@ -37,7 +38,11 @@ Stable, typed, documented interfaces intended for reuse (e.g. notebooks):
 - `demandpilot.forecasting.ForecastingPipeline(sql_dir).run(connection, features_config, forecast_config, costs_config, snapshot_table=None) -> BacktestReport`.
 - `demandpilot.optimization.RecommendationBuilder(sql_dir).build(connection, features_config, forecast_config, costs_config, lead_time_days, snapshot_table=None) -> RecommendationReport`.
 - `demandpilot.optimization.persist_recommendations(connection, report) -> None`.
-- `demandpilot.core.newsvendor.critical_fractile(cu, co) -> float`; `safety_stock(order_quantity, median_demand) -> float`.
+- `demandpilot.simulation.SimulationEngine(sql_dir).run(connection, features_config, forecast_config, costs_config, simulation_config, snapshot_table=None) -> PolicyComparison`.
+- `demandpilot.simulation.persist_simulation_results(connection, comparison) -> None`.
+- `demandpilot.simulation.classical_order_up_to(daily_demand, lead_time_days, service_level, demand_distribution, n_simulations, random_seed) -> float`.
+- `demandpilot.core.newsvendor.critical_fractile(cu, co) -> float`; `safety_stock(order_quantity, median_demand) -> float`; `realized_cost_breakdown(...) -> tuple[float, float]`.
+- `demandpilot.core.demand_distribution`: `normal_quantile`, `poisson_quantile`, `empirical_bootstrap_quantile`.
 - `demandpilot.core.metrics`: `pinball_loss`, `coverage`, `wape`, `bias`, `rmse`, `enforce_monotonic_quantiles`.
 - `demandpilot.sqlrender.SqlRenderer(sql_dir).render(name, **params) -> str`.
 

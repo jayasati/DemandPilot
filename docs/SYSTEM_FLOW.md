@@ -39,18 +39,20 @@ Kaggle M5 CSVs (scripts/download_m5.py)
                    Q* = the critical-fractile forecast; safety stock = Q* -
                    median; -> recommendations table (with actual_demand)
                              │
-              ┌──────────────┼────────────────┐
-              ▼              ▼                ▼
-   [V5] policy          [V3] backtest    [V6] Jinja2
-   simulation             report          executive reports
-   (historical replay,  (pinball,              │
-   P&L, extends V4)      coverage,              ▼
-              │           WAPE, bias,      [V7] Streamlit
-              │           RMSE)             dashboard
-              └──────────────┴────────────────┘
+                             │
+              ┌──────────────┼──────────────────────┐
+              ▼              ▼                       ▼
+   [V5] simulate: replay  [V3] backtest report   [V6] Jinja2
+   ML quantile vs.        (pinball, coverage,     executive reports
+   classical baseline     WAPE, bias, RMSE)              │
+   (empirical/normal/                                    ▼
+   Poisson — ADR-017);                              [V7] Streamlit
+   real-currency cost                                dashboard
+   breakdown ->
+   simulation_results
 ```
 
-## Current command sequence (Volumes 0–4)
+## Current command sequence (Volumes 0–5)
 
 1. `demandpilot init-db` — applies `sql/create_tables.sql`,
    `sql/feature_snapshots.sql`, and `sql/views.sql`.
@@ -70,7 +72,13 @@ Kaggle M5 CSVs (scripts/download_m5.py)
    origin, and persists order-quantity recommendations (with realized
    `actual_demand`, since this is retrospective — ADR-016) to the
    `recommendations` table.
-6. `demandpilot validate` — re-runs the validation suite on demand.
+6. `demandpilot simulate [--snapshot-version N]` — assembles a single-horizon
+   dataset at `simulation.yaml`'s `lead_time_days`, splits chronologically,
+   trains the ML quantile model on train+validation, computes the classical
+   baseline per series from the same pre-test data, replays both policies
+   over the review-period-filtered test origins, and persists the cost
+   comparison (ADR-017) to the `simulation_results` table.
+7. `demandpilot validate` — re-runs the validation suite on demand.
 
 Every step logs to console and `logs/demandpilot.log`, reads all settings from
 `configs/`, and is idempotent (re-running ingestion replaces the data).

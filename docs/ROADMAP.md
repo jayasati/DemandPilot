@@ -36,17 +36,23 @@ explicit exit criterion. No stage may be skipped.
   *Exit criterion met: recommendations per store/SKU reproducible from one
   command, on the test fixture — same real-vs-fixture-scale caveat as
   Volume 3.*
+- **Volume 5 — Simulation** ✅ (2026-07-12): `SimulationEngine` replays the
+  ML quantile policy against a classical baseline (Monte Carlo empirical /
+  normal / Poisson order-up-to, ADR-017) across many held-out historical
+  decision points, grading both against real outcomes in real currency
+  (`core.newsvendor.realized_cost_breakdown`); persisted to a
+  `simulation_results` table; `demandpilot simulate` CLI command.
+  *Exit criterion met: policy comparison with a cost breakdown (understock
+  vs. overstock, per policy) reproducible from one command, on the test
+  fixture — same real-vs-fixture-scale caveat as Volumes 3–4.*
 
 ## Now
 
-- **Volume 5 — Simulation**: vectorized historical replay; baseline vs.
-  optimized policy P&L, extending Volume 4's single-point recommendations
-  into a multi-period comparison. *Exit: policy comparison with cost
-  breakdown.*
+- **Volume 6 — Reporting**: Jinja2 executive reports (HTML) over the
+  `recommendations` and `simulation_results` tables.
 
 ## Later
 
-- **Volume 6 — Reporting**: Jinja2 executive reports (HTML).
 - **Volume 7 — Dashboard**: Streamlit app over read-only DuckDB connections.
 - **Volume 8 — Hardening**: end-to-end Docker run, performance passes,
   documentation audit, KNOWN_LIMITATIONS review.
